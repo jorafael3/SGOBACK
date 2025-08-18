@@ -11,10 +11,16 @@ class Principal extends Controller
         //$this->view->render('principal/index');
         //echo "nuevo controlaodr";
     }
-    function render()
-    {
-        $this->view->render('principal/principal');
-    }
 
-    
+    // function render()
+    // {
+    //     $this->view->render('principal/principal');
+    // }
+
+    function Cargar_Series()
+    {
+        $array = json_decode(file_get_contents("php://input"), true);
+        $Ventas =  $this->model->Cargar_Series($array);
+        //$this->CrecimientoCategoriasIndex();
+    }
 }
