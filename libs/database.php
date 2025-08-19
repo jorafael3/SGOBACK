@@ -103,15 +103,32 @@ class Database
             $stmt = $connection->prepare($query);
             $stmt->execute($params);
             if ($stmt) {
-                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $res = array(
+                    "success" => true,
+                    "querymessage" => "Consulta ejecutada correctamente",
+                    "data" => $stmt->fetchAll(PDO::FETCH_ASSOC),
+                );
+                $this->logInfo("Consulta ejecutada: $query");
+                return $res;
             } else {
                 $err = $stmt->errorInfo();
-                return 0;
+                $res = array(
+                    "success" => false,
+                    "querymessage" => "Error en la consulta",
+                    "error" => $err,
+                    "query" => $query
+                );
+                return $res;
             }
         } catch (PDOException $e) {
             // $this->logError("Error en consulta: " . $e->getMessage());
             // if (DEBUG) throw $e;
-            return false;
+            $res = array(
+                "success" => false,
+                "querymessage" => "Error en la consulta",
+                "error" => $e->getMessage()
+            );
+            return $res;
         }
     }
 

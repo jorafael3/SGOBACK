@@ -47,6 +47,20 @@ class Controller
     
     public function render()
     {
+        // Headers de seguridad para respuestas HTML
+        $securityHeaders = [
+            'X-Content-Type-Options: nosniff',
+            'X-Frame-Options: SAMEORIGIN',
+            'X-XSS-Protection: 1; mode=block',
+            'Referrer-Policy: no-referrer-when-downgrade',
+            'Permissions-Policy: geolocation=(), microphone=()'
+        ];
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            $securityHeaders[] = 'Strict-Transport-Security: max-age=63072000; includeSubDomains; preload';
+        }
+        foreach ($securityHeaders as $header) {
+            header($header);
+        }
         if ($this->view) {
             $controllerName = strtolower(get_class($this));
             $this->view->render($controllerName . '/index');
@@ -57,16 +71,22 @@ class Controller
     {
         $defaultHeaders = [
             'Content-Type: application/json',
-            'Cache-Control: no-cache, must-revalidate'
+            'Cache-Control: no-cache, must-revalidate',
+            'X-Content-Type-Options: nosniff',
+            'X-Frame-Options: SAMEORIGIN',
+            'X-XSS-Protection: 1; mode=block',
+            'Referrer-Policy: no-referrer-when-downgrade',
+            'Permissions-Policy: geolocation=(), microphone=()'
         ];
-        
+        // Strict-Transport-Security solo si usas HTTPS
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            $defaultHeaders[] = 'Strict-Transport-Security: max-age=63072000; includeSubDomains; preload';
+        }
         $allHeaders = array_merge($defaultHeaders, $headers);
         http_response_code($statusCode);
-        
         foreach ($allHeaders as $header) {
             header($header);
         }
-        
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         exit;
     }

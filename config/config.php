@@ -50,6 +50,7 @@ define('JWT_SECRET', $_ENV['JWT_SECRET'] ?? '123456');
 define('BCRYPT_ROUNDS', 12);
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 900); // 15 minutos
+define('TOKEN_EXPIRATION', 24 * 60 * 60); // 24 horas
 // define('ROOT_PATH', dirname(__DIR__));
 
 // Configuración de archivos
@@ -74,4 +75,3 @@ if (DEBUG) {
     ini_set('display_errors', 0);
     error_reporting(0);
 }
-

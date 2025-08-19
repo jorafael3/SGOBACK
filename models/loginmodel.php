@@ -6,6 +6,7 @@
  * Modelo de Login
  */
 class LoginModel extends Model
+
 {
     protected $table = 'adm_usuario';
     protected $primaryKey = 'id';
@@ -31,7 +32,7 @@ class LoginModel extends Model
             // Buscar usuario
             $user = $this->getUserByUsername($username);
 
-            // if (!$user) {
+            // if (!$user["success"]) {
             //     $this->recordFailedAttempt($username);
             //     return [
             //         'success' => false,
@@ -40,33 +41,33 @@ class LoginModel extends Model
             // }
 
             // // Verificar si el usuario está activo
-            // if (!$user['active']) {
-            //     return [
-            //         'success' => false,
-            //         'message' => 'Cuenta desactivada'
-            //     ];
-            // }
+            if ($user['data'][0]["estado"] != "A") {
+                return [
+                    'success' => false,
+                    'message' => 'Cuenta desactivada'
+                ];
+            }
 
             // Verificar contraseña
-            // if (!password_verify($password, $user['password'])) {
-            //     $this->recordFailedAttempt($username);
-            //     return [
-            //         'success' => false,
-            //         'message' => 'Credenciales inválidas'
-            //     ];
-            // }
+            if (!password_verify($password, $user["data"][0]['password_hash'])) {
+                $this->recordFailedAttempt($username);
+                return [
+                    'success' => false,
+                    'message' => 'Credenciales inválidas'
+                ];
+            }
 
             // Login exitoso
             // $this->clearFailedAttempts($username);
             // $this->updateLastLogin($user['id']);
 
             // Remover campos sensibles
-            // unset($user['password']);
+            unset($user['data'][0]['password_hash']);
 
             return [
                 'success' => true,
                 'message' => 'Login exitoso',
-                'user' => $user
+                'user_data' => $user['data'][0]
             ];
         } catch (Exception $e) {
             $this->logError("Error en authenticate: " . $e->getMessage());
@@ -80,7 +81,7 @@ class LoginModel extends Model
     private function getUserByUsername($username)
     {
         try {
-            $sql = "SELECT * FROM adm_usuario WHERE nombre = :username LIMIT 1";
+            $sql = "SELECT * FROM adm_Usuarios_Admin WHERE usuario = :username LIMIT 1";
             $stmt = $this->query($sql, [
                 ':username' => $username
             ]);
@@ -136,4 +137,6 @@ class LoginModel extends Model
             $this->logError("Error actualizando último login: " . $e->getMessage());
         }
     }
+
+
 }
