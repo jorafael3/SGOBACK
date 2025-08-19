@@ -1,51 +1,97 @@
 <?php
 require_once "controllers/errores.php";
-class App
+// =====================================================
+// ARCHIVO: libs/app.php
+// =====================================================
+/**
+ * Clase principal de la aplicación
+ */
+class App 
 {
-
-    function __construct()
+    private $controller = 'principal';
+    private $method = 'render';
+    private $params = [];
+    
+    public function __construct()
     {
-
-        //echo "<p>nueva app</p>";
-
-        $url = isset($_GET['url']) ? $_GET['url'] : null;
-        $url = rtrim($url, '/');
-        $url = explode('/', $url);
-
-        if (empty($url[0])) {
-            $archivocontroller = 'controllers/principal.php';
-            require_once $archivocontroller;
-            $controller = new Principal();
-            $controller->loadModel('principal');
-            $controller->render();
-            return false;
-        }
-        $archivocontroller = 'controllers/' . $url[0] . '.php';
-        if (file_exists($archivocontroller)) {
-            require_once $archivocontroller;
-            $controller = new $url[0];
-            $controller->loadModel($url[0]);
-
-            //nelemento arreglo
-            $nparam = sizeof($url);
-
-            if ($nparam > 1) {
-                if ($nparam > 2) {
-
-
-                    $param = [];
-                    for ($i = 2; $i < $nparam; $i++) {
-                        array_push($param, $url[$i]);
-                    }
-                    $controller->{$url[1]}($param);
-                } else {
-                    $controller->{$url[1]}();
-                }
-            } else {
-                $controller->render();
+        $this->parseUrl();
+        $this->loadController();
+        $this->callMethod();
+    }
+    
+    private function parseUrl()
+    {
+        if (isset($_GET['url'])) {
+            $url = filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL);
+            $url = explode('/', $url);
+            
+            $url = array_map(function($segment) {
+                return preg_replace('/[^a-zA-Z0-9_-]/', '', $segment);
+            }, array_filter($url));
+            
+            if (!empty($url[0])) {
+                $this->controller = strtolower($url[0]);
             }
-        } else {
-            $controller = new Errores();
+            
+            if (isset($url[1]) && !empty($url[1])) {
+                $this->method = $url[1];
+            }
+            
+            if (count($url) > 2) {
+                $this->params = array_slice($url, 2);
+            }
         }
     }
+    
+    private function loadController()
+    {
+        $controllerFile = 'controllers/' . $this->controller . '.php';
+        
+        if (file_exists($controllerFile)) {
+            require_once $controllerFile;
+            $controllerClass = ucfirst($this->controller);
+            
+            if (class_exists($controllerClass)) {
+                $this->controller = new $controllerClass;
+                
+                if (is_object($this->controller)) {
+                    $this->controller->loadModel(strtolower(get_class($this->controller)));
+                }
+            } else {
+                $this->loadErrorController("Controlador '$controllerClass' no encontrado");
+            }
+        } else {
+            $this->loadErrorController("Archivo de controlador no encontrado: $controllerFile");
+        }
+    }
+    
+    private function callMethod()
+    {
+        if (is_object($this->controller)) {
+            if (method_exists($this->controller, $this->method)) {
+                $reflection = new ReflectionMethod($this->controller, $this->method);
+                if ($reflection->isPublic()) {
+                    call_user_func_array([$this->controller, $this->method], $this->params);
+                } else {
+                    $this->loadErrorController("Método '{$this->method}' no es accesible");
+                }
+            } else {
+                $this->loadErrorController("Método '{$this->method}' no encontrado");
+            }
+        }
+    }
+    
+    private function loadErrorController($message = "Error desconocido")
+    {
+        require_once 'controllers/errores.php';
+        $this->controller = new Errores();
+        
+        if (DEBUG) {
+            error_log("Error de enrutamiento: $message");
+        }
+        
+        $this->method = 'render';
+        $this->params = [];
+    }
 }
+
