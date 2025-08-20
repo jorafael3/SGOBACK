@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/logsmodel.php';
+require_once __DIR__ . '/../logsmodel.php';
 
 
 class EmpresaModel extends Model

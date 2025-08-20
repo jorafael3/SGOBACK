@@ -56,4 +56,16 @@ class UsuarioAdminModel extends Model
             return false;
         }
     }
+
+    function getAllUsuarios()
+    {
+        try {
+            $sql = "SELECT usuario, nombre, apellido, email, estado, id_empresa as empresa FROM adm_Usuarios_Admin";
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo usuarios admin: " . $e->getMessage());
+            return false;
+        }
+    }
 }

@@ -11,7 +11,7 @@ class Controller
 {
     protected $view;
     protected $model;
-    
+    public $folder = null;
     public function __construct()
     {
         $this->view = new View();
@@ -21,21 +21,23 @@ class Controller
     public function loadModel($modelName)
     {
         try {
-            $modelFile = 'models/' . strtolower($modelName) . 'model.php';
-            
+            // Si el modelo está en una subcarpeta, buscar en models/carpeta/modelomodel.php
+            $folder = property_exists($this, 'folder') ? $this->folder : null;
+            $modelFile = $folder ? 'models/' . $folder . '/' . strtolower($modelName) . 'model.php' : 'models/' . strtolower($modelName) . 'model.php';
+
             if (!file_exists($modelFile)) {
                 $this->logError("Archivo de modelo no encontrado: $modelFile");
                 return false;
             }
-            
+
             require_once $modelFile;
             $modelClassName = ucfirst($modelName) . 'Model';
-            
+
             if (!class_exists($modelClassName)) {
                 $this->logError("Clase del modelo no encontrada: $modelClassName");
                 return false;
             }
-            
+
             $this->model = new $modelClassName();
             return true;
             

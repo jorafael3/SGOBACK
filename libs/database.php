@@ -19,7 +19,7 @@ class Database
     private $charset;
     private $driver;
 
-    private function __construct()
+    public function __construct()
     {
         $this->host = constant('DB_HOST');
         $this->database = constant('DB_NAME');

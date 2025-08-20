@@ -1,19 +1,22 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header("Access-Control-Allow-Origin: http://localhost:4200");
-    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
-    http_response_code(200);
-    exit;
-}
+// ...existing code...
+// Este archivo fue movido a controllers/login/login.php
+// Copia aquí el contenido original de tu controlador Login
+// if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+// header("Access-Control-Allow-Origin: http://localhost:4200");
+//     header("Access-Control-Allow-Origin: *");
+//     header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+//     header("Access-Control-Allow-Headers: Content-Type, Authorization");
+//     http_response_code(200);
+//     exit;
+// }
 // =====================================================
 // ARCHIVO: controllers/login.php
 // =====================================================
 /**
  * Controlador de Login
  */
-
-require_once __DIR__ . '/../libs/JwtHelper.php';
+require_once __DIR__ . '/../../libs/JwtHelper.php';
 
 
 class Login extends Controller
@@ -23,17 +26,17 @@ class Login extends Controller
         parent::__construct();
     }
 
-    public function render()
-    {
-        // Si ya está logueado, redirigir
-        if ($this->isAuthenticated()) {
-            header('Location: ' . URL . 'principal');
-            exit;
-        }
+    // public function render()
+    // {
+    //     // Si ya está logueado, redirigir
+    //     if ($this->isAuthenticated()) {
+    //         header('Location: ' . URL . 'principal');
+    //         exit;
+    //     }
 
-        $this->view->assign('csrf_token', $this->generateCsrfToken());
-        $this->view->render('login/index');
-    }
+    //     $this->view->assign('csrf_token', $this->generateCsrfToken());
+    //     $this->view->render('login/index');
+    // }
 
     public function authenticate()
     {

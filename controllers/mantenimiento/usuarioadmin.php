@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../libs/JwtHelper.php';
-require_once __DIR__ . '/../models/usuarioadminmodel.php';
+require_once __DIR__ . '/../../libs/JwtHelper.php';
+// require_once __DIR__ . '/../models/usuarioadminmodel.php';
 
 class UsuarioAdmin extends Controller
 {
@@ -95,6 +95,27 @@ class UsuarioAdmin extends Controller
             $this->jsonResponse(['success' => true, 'message' => 'Rol creado exitosamente'], 201);
         } else {
             $this->jsonResponse(['error' => 'Error al crear rol'], 500);
+        }
+    }
+
+    public function getAllUsers()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $result = $this->model->getAllUsuarios();
+        if ($result) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 500);
         }
     }
 }

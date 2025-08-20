@@ -1,11 +1,8 @@
 <?php
-require_once __DIR__ . '/../libs/JwtHelper.php';
+require_once __DIR__ . '/../../libs/JwtHelper.php';
 // require_once __DIR__ . '/../models/empresamodel.php';
 
 class Empresa extends Controller
-
-
-
 {
     /**
      * Constructor de la clase Empresa
