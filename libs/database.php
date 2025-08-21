@@ -115,6 +115,7 @@ class Database
                 $res = array(
                     "success" => false,
                     "querymessage" => "Error en la consulta",
+                    "message" => "Ocurrio un error al ejecutar la acción, vuelva a intentarlo en un momento, si el problema persiste contacte al administrador",
                     "error" => $err,
                     "query" => $query
                 );
@@ -126,6 +127,7 @@ class Database
             $res = array(
                 "success" => false,
                 "querymessage" => "Error en la consulta",
+                "message" => "Ocurrio un error al ejecutar la acción, vuelva a intentarlo en un momento, si el problema persiste contacte al administrador",
                 "error" => $e->getMessage()
             );
             return $res;

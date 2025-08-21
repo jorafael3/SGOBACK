@@ -15,46 +15,38 @@ class UsuarioAdmin extends Controller
         $authHeader = $headers['Authorization'] ?? '';
         $jwt = str_replace('Bearer ', '', $authHeader);
         if (!JwtHelper::validateJwt($jwt)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            $this->jsonResponse(["success" => false, 'message' => 'Token JWT inválido o expirado'], 401);
             return;
         }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            $this->jsonResponse(["success" => false, 'message' => 'Método no permitido'], 405);
             return;
         }
         $data = $this->getJsonInput();
-        $id_empresa = $data['id_empresa'] ?? null;
-        $id_rol = $data['id_rol'] ?? null;
         $usuario = strtoupper($data['usuario']) ?? null;
         $nombre = $data['nombre'] ?? "";
         $apellido = $data['apellido'] ?? "";
         $telefono = $data['telefono'] ?? "";
         $email = $data['email'] ?? "";
         $password = $data['password'] ?? "";
-        $estado = $data['estado'] ?? 'A';
-        $creado_por = $data['creado_por'] ?? null;
+        $password_confirmation = $data['password_confirmation'] ?? "";
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        $data['password_hash'] = $password_hash;
+
         if (empty($usuario) || empty($nombre) || empty($apellido) || empty($telefono) || empty($email) || empty($password)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios'], 400);
+            $this->jsonResponse(["success" => false, 'message' => 'Faltan datos obligatorios'], 400);
             return;
         }
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-        $result = $this->model->createUsuario([
-            'id_empresa' => $id_empresa,
-            'id_rol' => $id_rol,
-            'usuario' => $usuario,
-            'nombre' => $nombre,
-            'apellido' => $apellido,
-            'telefono' => $telefono,
-            'email' => $email,
-            'password_hash' => $password_hash,
-            'estado' => $estado,
-            'creado_por' => $creado_por
-        ]);
-        if ($result) {
+        if ($password !== $password_confirmation) {
+            $this->jsonResponse(["success" => false, 'message' => 'Las contraseñas no coinciden'], 400);
+            return;
+        }
+        $result = $this->model->createUsuario($data);
+        if ($result["success"]) {
             $result["message"] = "Usuario creado exitosamente";
             $this->jsonResponse($result, 201);
         } else {
-            $this->jsonResponse($result, 500);
+            $this->jsonResponse($result, 200);
         }
     }
 
@@ -116,6 +108,75 @@ class UsuarioAdmin extends Controller
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse($result, 500);
+        }
+    }
+
+    public function getUserDetails()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+        $result = $this->model->getUserDetails($data['id_usuario']);
+        if ($result["success"]) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 500);
+        }
+    }
+
+    public function updateUserData()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+        $result = $this->model->updateUserData($data);
+        if ($result["success"]) {
+            $result["message"] = "Usuario actualizado exitosamente";
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 200);
+        }
+    }
+
+    public function deleteUser()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+        $result = $this->model->deleteUser($data);
+        if ($result["success"]) {
+            $result["message"] = "Usuario eliminado exitosamente";
+            $result["params"] = $data;
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 200);
         }
     }
 }

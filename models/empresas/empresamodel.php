@@ -155,4 +155,29 @@ class EmpresaModel extends Model
             return false;
         }
     }
+
+    function getAllEmpresas()
+    {
+        try {
+            $sql = "SELECT 
+            e.id_empresa,
+            e.razon_social,
+            e.nombre_comercial,
+            e.ruc,
+            e.pais,
+            e.plan_id,
+            e.fecha_expira,
+            e.estado,
+            e.fecha_creacion,
+            p.nombre AS plan_nombre
+            FROM adm_Empresas e
+            left join adm_Planes p on e.plan_id = p.plan_id
+            WHERE e.estado != 'E'";
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo empresas: " . $e->getMessage());
+            return false;
+        }
+    }
 }

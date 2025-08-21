@@ -165,4 +165,26 @@ class Empresa extends Controller
             $this->jsonResponse($result, 500);
         }
     }
+
+    
+    public function getAllEmpresas()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $result = $this->model->getAllEmpresas();
+        if ($result) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 500);
+        }
+    }
 }
