@@ -180,6 +180,7 @@ class Empresa extends Controller
             $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
             return;
         }
+        
         $result = $this->model->getAllEmpresas();
         if ($result) {
             $this->jsonResponse($result, 200);
