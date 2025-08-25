@@ -29,11 +29,39 @@ class Planes extends Controller
         }
         $data = $this->getJsonInput();
         $result = $this->model->getPlanes();
-        if ($result) {
+
+        for ($i=0; $i < count($result["data"]); $i++) { 
+            $result["data"][$i]["detalle"] = $this->model->getPlanesDetalle($result["data"][$i]["plan_id"]);
+        }
+
+
+        if ($result["success"]) {
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse($result, 200);
         }
     }
 
+    public function createPlan()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+        $result = $this->model->createPlan($data);
+        if ($result["success"]) {
+            $result["message"] = "Plan creado exitosamente";
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 200);
+        }
+    }
 }
