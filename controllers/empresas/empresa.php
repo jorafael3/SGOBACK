@@ -39,6 +39,7 @@ class Empresa extends Controller
         $razon_social = $data['razon_social'] ?? null;
         $nombre_comercial = $data['nombre_comercial'] ?? null;
         $ruc = $data['ruc'] ?? null;
+        $direccion = $data['direccion'] ?? null;
         $pais = $data['pais'] ?? null;
         $moneda = $data['moneda'] ?? 'USD';
         $zona_horaria = $data['zona_horaria'] ?? 'America/Guayaquil';
@@ -47,10 +48,9 @@ class Empresa extends Controller
         $fecha_expira = $data['fecha_expira'] ?? null;
         $estado = $data['estado'] ?? 'A';
         $usuario_admin_id = $data['usuario_admin_id'] ?? null;
-        $creado_por = $data['creado_por'] ?? null;
 
-        if (empty($razon_social) || empty($plan_id)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios'], 400);
+        if (empty($razon_social) || empty($nombre_comercial) || empty($ruc) || empty($pais)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios'], 200);
             return;
         }
 
@@ -58,6 +58,7 @@ class Empresa extends Controller
             'razon_social' => $razon_social,
             'nombre_comercial' => $nombre_comercial,
             'ruc' => $ruc,
+            'direccion' => $direccion,
             'pais' => $pais,
             'moneda' => $moneda,
             'zona_horaria' => $zona_horaria,
@@ -66,14 +67,14 @@ class Empresa extends Controller
             'fecha_expira' => $fecha_expira,
             'estado' => $estado,
             'usuario_admin_id' => $usuario_admin_id,
-            'creado_por' => $creado_por
+            'creado_por' => $data["sessionData"]['id']
         ]);
 
         if ($result['success']) {
             $result["message"] = "Empresa creada exitosamente";
             $this->jsonResponse($result, 201);
         } else {
-            $this->jsonResponse($result, 500);
+            $this->jsonResponse($result, 200);
         }
     }
 
@@ -105,10 +106,12 @@ class Empresa extends Controller
         $telefono = $data['telefono'] ?? null;
         $rol_contacto = $data['rol_contacto'] ?? 'Admin';
         $estado = $data['estado'] ?? 'A';
-        $creado_por = $data['creado_por'] ?? null;
+        // $creado_por = $data['creado_por'] ?? null;
+
+
 
         if (empty($id_empresa) || empty($nombre)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios', 'id_empresa' => $id_empresa, 'nombre' => $nombre], 400);
+            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios', 'id_empresa' => $id_empresa, 'nombre' => $nombre], 200);
             return;
         }
 
@@ -119,14 +122,14 @@ class Empresa extends Controller
             'telefono' => $telefono,
             'rol_contacto' => $rol_contacto,
             'estado' => $estado,
-            'creado_por' => $creado_por
+            'creado_por' => $data["sessionData"]['id']
         ]);
 
         if ($result["success"]) {
             $result["message"] = "Contacto creado exitosamente";
             $this->jsonResponse($result, 201);
         } else {
-            $this->jsonResponse($result, 500);
+            $this->jsonResponse($result, 200);
         }
     }
 
@@ -166,7 +169,7 @@ class Empresa extends Controller
         }
     }
 
-    
+
     public function getAllEmpresas()
     {
         $headers = getallheaders();
@@ -180,12 +183,96 @@ class Empresa extends Controller
             $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
             return;
         }
-        
+
         $result = $this->model->getAllEmpresas();
         if ($result) {
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse($result, 500);
+        }
+    }
+
+    public function getEmpresaDataByUid()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+        $uid = $data['uid'] ?? null;
+        if (empty($uid)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios'], 400);
+            return;
+        }
+        $result = $this->model->getEmpresaDataByUid($uid);
+        if ($result) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 500);
+        }
+    }
+
+    public function getContactosEmpresa()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+        $uid = $data['uid'] ?? null;
+        if (empty($uid)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Faltan datos obligatorios'], 400);
+            return;
+        }
+        $result = $this->model->getContactosEmpresa($uid);
+        if ($result) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse($result, 200);
+        }
+    }
+
+    public function getPlanesEmpresa()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        if (!JwtHelper::validateJwt($jwt)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $planes = $this->model->getPlanesEmpresa();
+        $periodos = $this->model->getPlanesEmpresaPeriodos();
+        $precios = $this->model->getPlanesEmpresaPeriodosPrecio();
+
+        if ($planes && $periodos && $precios) {
+            $this->jsonResponse([
+                'planes' => $planes,
+                'periodos' => $periodos,
+                'precios' => $precios
+            ], 200);
+        } else {
+            $this->jsonResponse(["success" => false, 'error' => 'Error al obtener datos'], 500);
         }
     }
 }

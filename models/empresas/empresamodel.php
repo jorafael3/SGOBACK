@@ -10,9 +10,13 @@ class EmpresaModel extends Model
     {
         try {
             $sql = "INSERT INTO adm_Empresas (
-                tenant_uid, razon_social, nombre_comercial, ruc, pais, moneda, zona_horaria, logo_url, plan_id, fecha_expira, estado, usuario_admin_id, creado_por
+                tenant_uid, razon_social, nombre_comercial, ruc, pais, 
+                moneda, zona_horaria, logo_url, plan_id, fecha_expira, 
+                estado, usuario_admin_id, creado_por, direccion
             ) VALUES (
-                :tenant_uid, :razon_social, :nombre_comercial, :ruc, :pais, :moneda, :zona_horaria, :logo_url, :plan_id, :fecha_expira, :estado, :usuario_admin_id, :creado_por
+                :tenant_uid, :razon_social, :nombre_comercial, :ruc, :pais, 
+                :moneda, :zona_horaria, :logo_url, :plan_id, :fecha_expira, 
+                :estado, :usuario_admin_id, :creado_por, :direccion
             )";
             $tenant_uid = $this->generateUuid();
             $params = [
@@ -28,20 +32,21 @@ class EmpresaModel extends Model
                 ':fecha_expira' => $data['fecha_expira'],
                 ':estado' => $data['estado'],
                 ':usuario_admin_id' => $data['usuario_admin_id'],
-                ':creado_por' => $data['creado_por']
+                ':creado_por' => $data["creado_por"],
+                ':direccion' => $data['direccion'],
             ];
             $stmt = $this->query($sql, $params);
             // Log de éxito
-            $logsModel = new LogsModel();
-            $logsModel->createLog([
-                'id_empresa' => null, // Si tienes el id, puedes obtenerlo con lastInsertId()
-                'id_usuario' => $data['usuario_admin_id'] ?? null,
-                'modulo' => 'Empresa',
-                'accion' => 'INSERT',
-                'descripcion' => 'Creación de empresa exitosa',
-                'datos_nuevos' => $data,
-                'creado_por' => $data['creado_por']
-            ]);
+            // $logsModel = new LogsModel();
+            // $logsModel->createLog([
+            //     'id_empresa' => null, // Si tienes el id, puedes obtenerlo con lastInsertId()
+            //     'id_usuario' => $data['usuario_admin_id'] ?? null,
+            //     'modulo' => 'Empresa',
+            //     'accion' => 'INSERT',
+            //     'descripcion' => 'Creación de empresa exitosa',
+            //     'datos_nuevos' => $data,
+            //     'creado_por' => $data['creado_por']
+            // ]);
             return $stmt;
         } catch (Exception $e) {
             $this->logError("Error creando empresa: " . $e->getMessage());
@@ -169,7 +174,8 @@ class EmpresaModel extends Model
             e.fecha_expira,
             e.estado,
             e.fecha_creacion,
-            p.nombre AS plan_nombre
+            p.nombre AS plan_nombre,
+            e.tenant_uid
             FROM adm_Empresas e
             left join adm_Planes p on e.plan_id = p.plan_id
             WHERE e.estado != 'E'";
@@ -177,6 +183,97 @@ class EmpresaModel extends Model
             return $stmt;
         } catch (Exception $e) {
             $this->logError("Error obteniendo empresas: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function getEmpresaDataByUid($uid)
+    {
+        try {
+            $sql = "SELECT 
+            e.id_empresa,
+            e.razon_social,
+            e.nombre_comercial,
+            e.ruc,
+            e.pais,
+            e.plan_id,
+            e.fecha_expira,
+            e.estado,
+            e.fecha_creacion,
+            p.nombre AS plan_nombre,
+            e.tenant_uid
+            FROM adm_Empresas e
+            left join adm_Planes p on e.plan_id = p.plan_id
+            WHERE e.estado != 'E'
+            AND e.tenant_uid = :uid";
+            $stmt = $this->query($sql, [':uid' => $uid]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo empresas: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function getContactosEmpresa($uid)
+    {
+        try {
+            $sql = "SELECT 
+            *
+            FROM adm_Empresa_Contactos e
+            left join adm_Empresas p on e.id_empresa = p.id_empresa
+            WHERE e.estado = 'A'
+            AND p.tenant_uid = :uid";
+            $stmt = $this->query($sql, [':uid' => $uid]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo empresas: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function getPlanesEmpresa()
+    {
+        try {
+            $sql = "SELECT 
+            *
+            FROM adm_Planes ep
+            WHERE ep.estado = 'A'
+            ORDER BY ep.plan_id DESC";
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo planes de empresa: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function getPlanesEmpresaPeriodos()
+    {
+        try {
+            $sql = "SELECT 
+            *
+            FROM adm_Plannes_Periodos ep
+            ORDER BY ep.id_periodo asc";
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo planes de empresa: " . $e->getMessage());
+            return false;
+        }
+    }
+
+     function getPlanesEmpresaPeriodosPrecio()
+    {
+        try {
+            $sql = "SELECT 
+            *
+            FROM adm_Planes_Precios ep
+            WHERE ep.estado = 'A'
+            ORDER BY ep.id_plan DESC";
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo planes de empresa: " . $e->getMessage());
             return false;
         }
     }
