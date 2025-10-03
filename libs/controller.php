@@ -21,30 +21,103 @@ class Controller
     public function loadModel($modelName)
     {
         try {
-            // Si el modelo está en una subcarpeta, buscar en models/carpeta/modelomodel.php
-            $folder = property_exists($this, 'folder') ? $this->folder : null;
-            $modelFile = $folder ? 'models/' . $folder . '/' . strtolower($modelName) . 'model.php' : 'models/' . strtolower($modelName) . 'model.php';
-
-            if (!file_exists($modelFile)) {
-                $this->logError("Archivo de modelo no encontrado: $modelFile");
-                return false;
-            }
-
-            require_once $modelFile;
+            $modelFileName = strtolower($modelName) . 'model.php';
             $modelClassName = ucfirst($modelName) . 'Model';
+            $modelFile = null;
 
-            if (!class_exists($modelClassName)) {
-                $this->logError("Clase del modelo no encontrada: $modelClassName");
+            // Método 1: Buscar en carpeta específica si está definida
+            if (property_exists($this, 'folder') && $this->folder) {
+                $specificPath = 'models/' . $this->folder . '/' . $modelFileName;
+                if (file_exists($specificPath)) {
+                    $modelFile = $specificPath;
+                }
+            }
+
+            // Método 2: Búsqueda recursiva automática si no se encontró en la carpeta específica
+            if (!$modelFile) {
+                $modelFile = $this->findModelRecursively('models', $modelFileName);
+            }
+
+            // Método 3: Buscar en la raíz de models como fallback
+            if (!$modelFile) {
+                $rootPath = 'models/' . $modelFileName;
+                if (file_exists($rootPath)) {
+                    $modelFile = $rootPath;
+                }
+            }
+
+            // Si no se encontró el archivo, mostrar error detallado
+            if (!$modelFile) {
+                $searchedPaths = [];
+                if (property_exists($this, 'folder') && $this->folder) {
+                    $searchedPaths[] = 'models/' . $this->folder . '/' . $modelFileName;
+                }
+                $searchedPaths[] = 'models/' . $modelFileName;
+                $searchedPaths[] = 'búsqueda recursiva en models/';
+                
+                $this->logError("Archivo de modelo '$modelFileName' no encontrado en: " . implode(', ', $searchedPaths));
                 return false;
             }
 
+            // Cargar el archivo del modelo
+            require_once $modelFile;
+
+            // Verificar que la clase existe
+            if (!class_exists($modelClassName)) {
+                $this->logError("Clase del modelo '$modelClassName' no encontrada en archivo: $modelFile");
+                return false;
+            }
+
+            // Crear instancia del modelo con soporte multiempresa
             $this->model = new $modelClassName();
+            
+            // Log de éxito (solo en modo debug)
+            if (DEBUG) {
+                error_log("Modelo '$modelClassName' cargado exitosamente desde: $modelFile");
+            }
             return true;
             
         } catch (Exception $e) {
             $this->logError("Error al cargar modelo '$modelName': " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Busca recursivamente un archivo de modelo en todas las subcarpetas
+     * @param string $directory Directorio base para buscar
+     * @param string $fileName Nombre del archivo a buscar
+     * @return string|null Ruta del archivo encontrado o null
+     */
+    private function findModelRecursively($directory, $fileName)
+    {
+        if (!is_dir($directory)) {
+            return null;
+        }
+
+        // Buscar en el directorio actual
+        $filePath = $directory . '/' . $fileName;
+        if (file_exists($filePath)) {
+            return $filePath;
+        }
+
+        // Buscar recursivamente en subdirectorios
+        $files = scandir($directory);
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            
+            $fullPath = $directory . '/' . $file;
+            if (is_dir($fullPath)) {
+                $result = $this->findModelRecursively($fullPath, $fileName);
+                if ($result) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
     }
     
     public function render()
@@ -196,6 +269,123 @@ class Controller
             return false;
         }
         return $payload;
+    }
+    
+    /**
+     * Configura automáticamente el modelo con la empresa del JWT
+     * @return array|false Datos del JWT o false si no es válido
+     */
+    protected function configureModelWithJWT()
+    {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $jwt = str_replace('Bearer ', '', $authHeader);
+        
+        // Validar JWT usando JwtHelper
+        require_once __DIR__ . '/JwtHelper.php';
+        if (!JwtHelper::validateJwt($jwt)) {
+            return false;
+        }
+        
+        // Decodificar JWT
+        $jwtData = JwtHelper::decodeJwt($jwt);
+        
+        // Configurar modelo con la empresa del JWT si existe
+        if ($this->model && isset($jwtData['empresa']) && method_exists($this->model, 'setEmpresa')) {
+            $this->model->setEmpresa($jwtData['empresa']);
+        }
+        
+        return $jwtData;
+    }
+    
+    /**
+     * Método helper que combina autenticación JWT y configuración de empresa
+     * @param int $requiredMethod 1=GET, 2=POST, 3=PUT, 4=DELETE, 0=cualquiera
+     * @return array|false Datos del JWT o false si falla
+     */
+    protected function authenticateAndConfigureModel($requiredMethod = 0)
+    {
+        // Verificar método HTTP si se especifica
+        if ($requiredMethod > 0) {
+            $methods = ['', 'GET', 'POST', 'PUT', 'DELETE'];
+            if ($_SERVER['REQUEST_METHOD'] !== $methods[$requiredMethod]) {
+                $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+                return false;
+            }
+        }
+        
+        $jwtData = $this->configureModelWithJWT();
+        if (!$jwtData) {
+            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            return false;
+        }
+        
+        return $jwtData;
+    }
+    
+    /**
+     * Obtiene la empresa actual del JWT
+     * @return string|null Código de empresa o null
+     */
+    protected function getCurrentEmpresa()
+    {
+        $jwtData = $this->configureModelWithJWT();
+        return $jwtData ? ($jwtData['empresa'] ?? null) : null;
+    }
+    
+    /**
+     * Crea una instancia temporal de un modelo para otra empresa
+     * @param string $modelName Nombre del modelo
+     * @param string $empresaCode Código de la empresa
+     * @return object|false Instancia del modelo o false si falla
+     */
+    protected function getModelForEmpresa($modelName, $empresaCode)
+    {
+        try {
+            $modelFileName = strtolower($modelName) . 'model.php';
+            $modelClassName = ucfirst($modelName) . 'Model';
+            $modelFile = null;
+
+            // Método 1: Buscar en carpeta específica si está definida
+            if (property_exists($this, 'folder') && $this->folder) {
+                $specificPath = 'models/' . $this->folder . '/' . $modelFileName;
+                if (file_exists($specificPath)) {
+                    $modelFile = $specificPath;
+                }
+            }
+
+            // Método 2: Búsqueda recursiva automática si no se encontró en la carpeta específica
+            if (!$modelFile) {
+                $modelFile = $this->findModelRecursively('models', $modelFileName);
+            }
+
+            // Método 3: Buscar en la raíz de models como fallback
+            if (!$modelFile) {
+                $rootPath = 'models/' . $modelFileName;
+                if (file_exists($rootPath)) {
+                    $modelFile = $rootPath;
+                }
+            }
+
+            if (!$modelFile) {
+                $this->logError("Archivo de modelo '$modelFileName' no encontrado para empresa '$empresaCode'");
+                return false;
+            }
+
+            require_once $modelFile;
+
+            if (!class_exists($modelClassName)) {
+                $this->logError("Clase del modelo '$modelClassName' no encontrada para empresa '$empresaCode'");
+                return false;
+            }
+
+            // Crear instancia del modelo para la empresa específica
+            return new $modelClassName($empresaCode);
+            
+        } catch (Exception $e) {
+            $this->logError("Error al crear modelo para empresa '$empresaCode': " . $e->getMessage());
+            return false;
+        }
     }
 }
 

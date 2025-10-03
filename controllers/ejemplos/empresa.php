@@ -11,8 +11,11 @@ class Empresa extends Controller
     public function __construct()
     {
         parent::__construct();
-        // $this->loadModel('empresa');
+        $this->folder = 'empresas'; // Especifica la carpeta donde está el modelo
+        $this->loadModel('empresa'); // Cargar el modelo de empresa
     }
+
+    
 
     /**
      * Crea una nueva empresa en la base de datos
@@ -22,17 +25,10 @@ class Empresa extends Controller
      */
     public function create()
     {
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
-        $jwt = str_replace('Bearer ', '', $authHeader);
-
-        if (!JwtHelper::validateJwt($jwt)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
-            return;
-        }
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
-            return;
+        // Autenticar JWT y configurar modelo automáticamente (método POST requerido)
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada por el método helper
         }
 
         $data = $this->getJsonInput();
@@ -86,17 +82,10 @@ class Empresa extends Controller
      */
     public function createContacto()
     {
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
-        $jwt = str_replace('Bearer ', '', $authHeader);
-
-        if (!JwtHelper::validateJwt($jwt)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
-            return;
-        }
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
-            return;
+        // Autenticar JWT y configurar modelo automáticamente (método POST requerido)
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada por el método helper
         }
 
         $data = $this->getJsonInput();
@@ -170,25 +159,69 @@ class Empresa extends Controller
     }
 
 
+    /**
+     * ====================================================================
+     * EJEMPLO DE ENDPOINT CON SISTEMA MULTIEMPRESA
+     * ====================================================================
+     * 
+     * Este método demuestra el patrón estándar para cualquier endpoint
+     * en el sistema multiempresa:
+     * 
+     * 1. ✅ Autenticación automática con JWT
+     * 2. ✅ Configuración automática de la empresa desde el token
+     * 3. ✅ Ejecución de la lógica de negocio
+     * 4. ✅ Respuesta estandarizada
+     * 
+     * ENDPOINT: POST /empresa/getAllEmpresas
+     * HEADERS: Authorization: Bearer <jwt_token>
+     * BODY: {} (puede incluir filtros opcionales)
+     * 
+     * RESPUESTA EXITOSA:
+     * {
+     *   "success": true,
+     *   "querymessage": "Consulta ejecutada correctamente",
+     *   "data": [...],
+     *   "empresa_actual": "pruebas_computron",
+     *   "total_registros": 5
+     * }
+     * 
+     * RESPUESTA DE ERROR:
+     * {
+     *   "success": false,
+     *   "error": "Token JWT inválido o expirado"
+     * }
+     * 
+     * @return void
+     */
     public function getAllEmpresas()
     {
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
-        $jwt = str_replace('Bearer ', '', $authHeader);
-        if (!JwtHelper::validateJwt($jwt)) {
-            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
-            return;
-        }
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
-            return;
+        // ✅ PATRÓN ESTÁNDAR: Autenticar JWT y configurar empresa automáticamente
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
         }
 
+        // ✅ Obtener datos opcionales del body
+        $data = $this->getJsonInput();
+        $filtros = $data['filtros'] ?? [];
+
+        // ✅ Ejecutar lógica de negocio - el modelo ya está configurado con la empresa correcta
         $result = $this->model->getAllEmpresas();
-        if ($result) {
+        
+        // ✅ Respuesta estandarizada con información adicional
+        if ($result && $result['success']) {
+            // Agregar información del contexto multiempresa
+            $result['empresa_actual'] = $jwtData['empresa'] ?? 'N/A';
+            $result['usuario'] = $jwtData['username'] ?? 'N/A';
+            $result['total_registros'] = count($result['data'] ?? []);
+            
             $this->jsonResponse($result, 200);
         } else {
-            $this->jsonResponse($result, 500);
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos de empresas',
+                'empresa_actual' => $jwtData['empresa'] ?? 'N/A'
+            ], 500);
         }
     }
 
@@ -274,5 +307,65 @@ class Empresa extends Controller
         } else {
             $this->jsonResponse(["success" => false, 'error' => 'Error al obtener datos'], 500);
         }
+    }
+    
+    /**
+     * Ejemplo: Consulta cruzada entre empresas
+     * Estando conectado a una empresa, consulta datos de otra
+     */
+    public function consultaCruzada()
+    {
+        // Autenticar y configurar modelo con empresa actual
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) return;
+        
+        $data = $this->getJsonInput();
+        $otraEmpresa = $data['empresa_destino'] ?? null;
+        
+        if (empty($otraEmpresa)) {
+            $this->jsonResponse(["success" => false, 'error' => 'Empresa destino requerida'], 400);
+            return;
+        }
+        
+        // Opción 1: Usar método del modelo actual para consulta cruzada
+        $resultado1 = $this->model->getUsersFromEmpresa($otraEmpresa);
+        
+        // Opción 2: Crear modelo temporal para otra empresa
+        $modeloTemporal = $this->getModelForEmpresa('empresa', $otraEmpresa);
+        $resultado2 = $modeloTemporal ? $modeloTemporal->getAllEmpresas() : null;
+        
+        // Opción 3: Comparar datos entre empresas
+        $comparacion = $this->model->compararConOtraEmpresa($otraEmpresa);
+        
+        $this->jsonResponse([
+            'success' => true,
+            'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+            'empresa_consultada' => $otraEmpresa,
+            'usuarios_otra_empresa' => $resultado1,
+            'datos_modelo_temporal' => $resultado2,
+            'comparacion' => $comparacion
+        ], 200);
+    }
+    
+    /**
+     * Ejemplo: Consulta datos de múltiples empresas al mismo tiempo
+     */
+    public function consultaMultiEmpresa()
+    {
+        // Autenticar y configurar modelo con empresa actual
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) return;
+        
+        $data = $this->getJsonInput();
+        $empresas = $data['empresas'] ?? ['pruebas_cartimex', 'pruebas_computron', 'sisco'];
+        
+        // Obtener datos de múltiples empresas
+        $resultados = $this->model->getDataFromMultipleEmpresas($empresas);
+        
+        $this->jsonResponse([
+            'success' => true,
+            'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+            'resultados_multi_empresa' => $resultados
+        ], 200);
     }
 }

@@ -24,6 +24,8 @@ class Login extends Controller
     public function __construct()
     {
         parent::__construct();
+        $this->folder = 'login'; // Especifica la carpeta donde está el modelo
+        $this->loadModel('login'); // Cargar el modelo de login
     }
 
     // public function render()
@@ -55,13 +57,22 @@ class Login extends Controller
             $data = $this->getJsonInput();
             $username = trim($data['username']) ?? null;
             $password = trim($data['password']) ?? null;
+            $empresa_code = trim($data['empresa_code']) ?? null;
 
             if (empty($username) || empty($password)) {
                 $this->jsonResponse(["success" => false, 'error' => 'Usuario y contraseña son requeridos'], 400);
                 return;
             }
 
-            $result = $this->model->authenticate($username, $password);
+            if (empty($empresa_code)) {
+                $this->jsonResponse(["success" => false, 'error' => 'Código de empresa es requerido'], 400);
+                return;
+            }
+
+            // Configurar el modelo para usar la empresa específica
+            $this->model->setEmpresa($empresa_code);
+
+            $result = $this->model->authenticate($username, $password, $empresa_code);
             // $result =  ['success' => true, 'message' => 'Método no implementado'];
 
             if ($result['success']) {
@@ -86,8 +97,9 @@ class Login extends Controller
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
         $expTime = TOKEN_EXPIRATION; // Tiempo de expiración en segundos (puedes cambiarlo)
         $payload = json_encode([
-            'sub' => $user['id_usuario'],
+            'sub' => $user['usrid'],
             'username' => $user['usuario'],
+            'empresa' => $user['empresa'],
             'iat' => time(),
             'exp' => time() + $expTime // Expira en $expTime segundos
         ]);
@@ -147,6 +159,5 @@ class Login extends Controller
             $this->jsonResponse(['error' => 'Error al registrar usuario'], 500);
         }
     }
-
     // ...
 }

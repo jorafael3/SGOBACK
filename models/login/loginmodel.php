@@ -13,43 +13,31 @@ class LoginModel extends Model
     protected $fillable = ['username', 'email', 'password', 'active', 'last_login'];
     protected $hidden = ['password'];
 
-    public function __construct()
+    public function __construct($empresaCode = null)
     {
-        parent::__construct();
+        parent::__construct($empresaCode);
     }
 
-    public function authenticate($username, $password)
+    public function authenticate($username, $password, $empresa_code = null)
     {
         try {
-            // Verificar intentos de login fallidos
-            if ($this->isAccountLocked($username)) {
-                return [
-                    'success' => false,
-                    'message' => 'Cuenta bloqueada temporalmente por múltiples intentos fallidos'
-                ];
+            // Si se proporciona un código de empresa, cambiar la conexión
+            if ($empresa_code) {
+                $this->setEmpresa($empresa_code);
             }
+
+            // Verificar intentos de login fallidos
+            // if ($this->isAccountLocked($username)) {
+            //     return [
+            //         'success' => false,
+            //         'message' => 'Cuenta bloqueada temporalmente por múltiples intentos fallidos'
+            //     ];
+            // }
 
             // Buscar usuario
             $user = $this->getUserByUsername($username);
 
-            // if (!$user["success"]) {
-            //     $this->recordFailedAttempt($username);
-            //     return [
-            //         'success' => false,
-            //         'message' => 'Credenciales inválidas'
-            //     ];
-            // }
-
-            // // Verificar si el usuario está activo
-            if ($user['data'][0]["estado"] != "A") {
-                return [
-                    'success' => false,
-                    'message' => 'Cuenta desactivada'
-                ];
-            }
-
-            // Verificar contraseña
-            if (!password_verify($password, $user["data"][0]['password_hash'])) {
+            if (!$user["success"]) {
                 $this->recordFailedAttempt($username);
                 return [
                     'success' => false,
@@ -57,12 +45,45 @@ class LoginModel extends Model
                 ];
             }
 
+            if (empty($user['data'])) {
+                $this->recordFailedAttempt($username);
+                return [
+                    'success' => false,
+                    'message' => 'Credenciales inválidas'
+                ];
+            }
+         
+            // // Verificar si el usuario está activo
+            if ($user['data'][0]["anulado"] == "1") {
+                return [
+                    'success' => false,
+                    'message' => 'Cuenta desactivada'
+                ];
+            }
+
+            // Verificar contraseña
+            // if (!password_verify($password, $user["data"][0]['password_hash'])) {
+            //     $this->recordFailedAttempt($username);
+            //     return [
+            //         'success' => false,
+            //         'message' => 'Credenciales inválidas'
+            //     ];
+            // }
+            if(!($password === $user["data"][0]['clave'])){
+                $this->recordFailedAttempt($username);
+                return [
+                    'success' => false,
+                    'message' => 'Credenciales inválidas, verificar usuario y contraseña'
+                ];
+            }
+
             // Login exitoso
             // $this->clearFailedAttempts($username);
             // $this->updateLastLogin($user['id']);
-
+            $user["data"][0]["empresa"] = $empresa_code ?? $this->empresaCode;
+            $user["data"][0]["empresa_code"] = $empresa_code ?? $this->empresaCode;
             // Remover campos sensibles
-            unset($user['data'][0]['password_hash']);
+            unset($user['data'][0]['clave']);
 
             return [
                 'success' => true,
@@ -73,7 +94,7 @@ class LoginModel extends Model
             $this->logError("Error en authenticate: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Error interno de autenticación'
+                'message' => 'Error interno de autenticación: ' . $e->getMessage()
             ];
         }
     }
@@ -81,7 +102,7 @@ class LoginModel extends Model
     private function getUserByUsername($username)
     {
         try {
-            $sql = "SELECT * FROM adm_Usuarios_Admin WHERE usuario = :username LIMIT 1";
+            $sql = "SELECT * FROM SERIESUSR WHERE usuario = :username";
             $stmt = $this->query($sql, [
                 ':username' => $username
             ]);
@@ -137,6 +158,4 @@ class LoginModel extends Model
             $this->logError("Error actualizando último login: " . $e->getMessage());
         }
     }
-
-
 }

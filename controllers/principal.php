@@ -16,7 +16,8 @@ class Principal extends Controller
     
     public function render()
     {
-        $this->view->render('principal/index');
+        // $this->view->render('principal/index');
+        die('Controlador Principal funcionando');
     }
   
 }

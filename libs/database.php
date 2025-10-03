@@ -9,32 +9,48 @@
  */
 class Database
 {
-    private static $instance = null;
-    private $connection = null;
+    // private static $instance = null;
+    // private $connection = null;
 
-    private $host;
-    private $database;
-    private $username;
-    private $password;
-    private $charset;
-    private $driver;
+    // private $host;
+    // private $database;
+    // private $username;
+    // private $password;
+    // private $charset;
+    // private $driver;
 
-    public function __construct()
+    private static $instances = [];
+    private $connection;
+    private $config;
+
+    public function __construct($config)
     {
-        $this->host = constant('DB_HOST');
-        $this->database = constant('DB_NAME');
-        $this->username = constant('DB_USER');
-        $this->password = constant('DB_PASSWORD');
-        $this->charset = constant('DB_CHARSET');
-        $this->driver = constant('DB_DRIVER');
+        // $this->host = constant('DB_HOST');
+        // $this->database = constant('DB_NAME');
+        // $this->username = constant('DB_USER');
+        // $this->password = constant('DB_PASSWORD');
+        // $this->charset = constant('DB_CHARSET');
+        // $this->driver = constant('DB_DRIVER');
+
+        $this->config = $config;
     }
 
-    public static function getInstance()
+    public static function getInstance($empresaCode, $empresasConfig)
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
+        // if (self::$instance === null) {
+        //     self::$instance = new self();
+        // }
+        // return self::$instance;
+
+        if (!isset($empresasConfig[$empresaCode])) {
+            throw new Exception("No existe configuración para la empresa: $empresaCode");
         }
-        return self::$instance;
+
+        if (!isset(self::$instances[$empresaCode])) {
+            self::$instances[$empresaCode] = new self($empresasConfig[$empresaCode]);
+        }
+
+        return self::$instances[$empresaCode];
     }
 
     public function connect()
@@ -47,8 +63,8 @@ class Database
             $dsn = $this->buildDsn();
             $options = $this->getPdoOptions();
 
-            $this->connection = new PDO($dsn, $this->username, $this->password, $options);
-
+            // $this->connection = new PDO($dsn, $this->username, $this->password, $options);
+            $this->connection = new PDO($dsn, $this->config['username'], $this->config['password'], $options);
             $this->logInfo("Conexión a base de datos establecida exitosamente");
             return $this->connection;
         } catch (PDOException $e) {
@@ -59,39 +75,26 @@ class Database
 
     private function buildDsn()
     {
-        switch ($this->driver) {
+        switch ($this->config['driver']) {
             case 'mysql':
-                return "mysql:host={$this->host}:3306;dbname={$this->database};charset={$this->charset}";
+                return "mysql:host={$this->config['host']};port={$this->config['port']};dbname={$this->config['database']};charset={$this->config['charset']}";
             case 'pgsql':
-                return "pgsql:host={$this->host};dbname={$this->database}";
+                return "pgsql:host={$this->config['host']};dbname={$this->config['database']}";
             case 'sqlsrv':
-                return "sqlsrv:Server={$this->host};Database={$this->database}";
+                return "sqlsrv:Server={$this->config['host']};Database={$this->config['database']}";
             case 'sqlite':
-                return "sqlite:{$this->database}";
+                return "sqlite:{$this->config['database']}";
             default:
-                throw new Exception("Driver de base de datos no soportado: {$this->driver}");
+                throw new Exception("Driver no soportado: {$this->config['driver']}");
         }
     }
 
     private function getPdoOptions()
     {
-        $options = [
+        return [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::ATTR_PERSISTENT => false
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ];
-
-        switch ($this->driver) {
-            case 'mysql':
-                $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES {$this->charset}";
-                break;
-            case 'sqlsrv':
-                $options[PDO::ATTR_AUTOCOMMIT] = true;
-                break;
-        }
-
-        return $options;
     }
 
     public function query($query, $params = [])

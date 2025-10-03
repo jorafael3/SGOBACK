@@ -83,7 +83,7 @@ try {
     require_once 'config/config.php';
     
     // 2. Validar configuración
-    validateConfiguration();
+    // validateConfiguration();
     
     // 3. Cargar librerías core
     $coreFiles = [
@@ -102,7 +102,7 @@ try {
     }
     
     // 4. Inicializar aplicación
-    initializeApplication();
+    // initializeApplication();
     
     // 5. Iniciar la aplicación
     $app = new App();

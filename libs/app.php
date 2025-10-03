@@ -30,67 +30,169 @@ class App
                 return preg_replace('/[^a-zA-Z0-9_-]/', '', $segment);
             }, array_filter($url));
 
-            // Nueva estructura: /carpeta/controlador/metodo/param1/param2...
-            if (!empty($url[0]) && !empty($url[1])) {
-                $this->folder = strtolower($url[0]);
-                $this->controller = strtolower($url[1]);
-            } elseif (!empty($url[0])) {
-                $this->controller = strtolower($url[0]);
-                $this->folder = null;
-            }
+            // Nueva estructura recursiva: /carpeta1/carpeta2/.../controlador/metodo/param1/param2...
+            if (!empty($url)) {
+                // Buscar controlador recursivamente
+                $controllerInfo = $this->findControllerRecursively($url);
+                
+                if ($controllerInfo) {
+                    $this->folder = $controllerInfo['folder'];
+                    $this->controller = $controllerInfo['controller'];
+                    $methodIndex = $controllerInfo['method_index'];
+                    
+                    // Extraer método si existe
+                    if (isset($url[$methodIndex]) && !empty($url[$methodIndex])) {
+                        $this->method = $url[$methodIndex];
+                    }
+                    
+                    // Extraer parámetros si existen
+                    if (count($url) > ($methodIndex + 1)) {
+                        $this->params = array_slice($url, $methodIndex + 1);
+                    }
+                } else {
+                    // Fallback al comportamiento original para compatibilidad
+                    if (!empty($url[0]) && !empty($url[1])) {
+                        $this->folder = strtolower($url[0]);
+                        $this->controller = strtolower($url[1]);
+                    } elseif (!empty($url[0])) {
+                        $this->controller = strtolower($url[0]);
+                        $this->folder = null;
+                    }
 
-            if (isset($url[2]) && !empty($url[2])) {
-                $this->method = $url[2];
-            }
+                    if (isset($url[2]) && !empty($url[2])) {
+                        $this->method = $url[2];
+                    }
 
-            if (count($url) > 3) {
-                $this->params = array_slice($url, 3);
+                    if (count($url) > 3) {
+                        $this->params = array_slice($url, 3);
+                    }
+                }
             }
         }
+    }
+
+    /**
+     * Busca un controlador recursivamente en la estructura de URL
+     * @param array $urlSegments Segmentos de la URL
+     * @return array|null Información del controlador encontrado o null
+     */
+    private function findControllerRecursively($urlSegments)
+    {
+        $segmentCount = count($urlSegments);
+        
+        // Probar diferentes combinaciones de carpetas/controlador
+        for ($i = 0; $i < $segmentCount; $i++) {
+            // Construir la ruta de carpetas (desde el inicio hasta el índice i)
+            $folderParts = array_slice($urlSegments, 0, $i);
+            $folderPath = !empty($folderParts) ? implode('/', $folderParts) : '';
+            
+            // El siguiente segmento sería el controlador
+            if (isset($urlSegments[$i])) {
+                $controllerName = strtolower($urlSegments[$i]);
+                
+                // Construir la ruta del archivo del controlador
+                $controllerFile = !empty($folderPath) 
+                    ? "controllers/{$folderPath}/{$controllerName}.php"
+                    : "controllers/{$controllerName}.php";
+                
+                // Si el archivo existe, hemos encontrado el controlador
+                if (file_exists($controllerFile)) {
+                    return [
+                        'folder' => $folderPath,
+                        'controller' => $controllerName,
+                        'method_index' => $i + 1, // El índice donde debería estar el método
+                        'file_path' => $controllerFile
+                    ];
+                }
+            }
+        }
+        
+        return null;
     }
     
     private function loadController()
     {
-        // Nueva lógica: si hay carpeta, buscar en carpeta/controlador.php
+        // Construir la ruta del archivo del controlador
         if (!empty($this->folder)) {
             $controllerFile = 'controllers/' . $this->folder . '/' . $this->controller . '.php';
         } else {
             $controllerFile = 'controllers/' . $this->controller . '.php';
         }
+        
         $controllerClass = ucfirst($this->controller);
 
+        // Verificar si el archivo existe
         if (file_exists($controllerFile)) {
             require_once $controllerFile;
         } else {
-            $this->loadErrorController("Archivo de controlador no encontrado: $controllerFile");
-            return;
+            // Si no existe, intentar búsqueda recursiva como fallback
+            $foundController = $this->findControllerFileRecursively('controllers', $this->controller . '.php');
+            if ($foundController) {
+                require_once $foundController;
+                // Actualizar la carpeta basándose en la ruta encontrada
+                $relativePath = str_replace('controllers/', '', dirname($foundController));
+                if ($relativePath !== 'controllers' && $relativePath !== '.') {
+                    $this->folder = $relativePath;
+                }
+            } else {
+                $this->loadErrorController("Archivo de controlador no encontrado: $controllerFile");
+                return;
+            }
         }
 
+        // Crear instancia del controlador
         if (class_exists($controllerClass)) {
             $this->controller = new $controllerClass;
             if (is_object($this->controller)) {
+                // Asignar la carpeta al controlador para que pueda cargar sus modelos
                 if (!empty($this->folder)) {
                     $this->controller->folder = $this->folder;
                 }
+                
+                // Intentar cargar el modelo automáticamente (opcional, puede removerse si no se desea)
                 $modelName = strtolower(get_class($this->controller));
-                if (!empty($this->folder)) {
-                    $modelFile = 'models/' . $this->folder . '/' . $modelName . '.php';
-                    $modelModelFile = 'models/' . $this->folder . '/' . $modelName . 'model.php';
-                } else {
-                    $modelFile = 'models/' . $modelName . '.php';
-                    $modelModelFile = 'models/' . $modelName . 'model.php';
-                }
-
-                if (file_exists($modelFile)) {
-                    require_once $modelFile;
-                } elseif (file_exists($modelModelFile)) {
-                    require_once $modelModelFile;
-                }
                 $this->controller->loadModel($modelName);
             }
         } else {
             $this->loadErrorController("Controlador '$controllerClass' no encontrado");
         }
+    }
+
+    /**
+     * Busca recursivamente un archivo de controlador en todas las subcarpetas
+     * @param string $directory Directorio base para buscar
+     * @param string $fileName Nombre del archivo a buscar
+     * @return string|null Ruta del archivo encontrado o null
+     */
+    private function findControllerFileRecursively($directory, $fileName)
+    {
+        if (!is_dir($directory)) {
+            return null;
+        }
+
+        // Buscar en el directorio actual
+        $filePath = $directory . '/' . $fileName;
+        if (file_exists($filePath)) {
+            return $filePath;
+        }
+
+        // Buscar recursivamente en subdirectorios
+        $files = scandir($directory);
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            
+            $fullPath = $directory . '/' . $file;
+            if (is_dir($fullPath)) {
+                $result = $this->findControllerFileRecursively($fullPath, $fileName);
+                if ($result) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
     }
     
     private function callMethod()
