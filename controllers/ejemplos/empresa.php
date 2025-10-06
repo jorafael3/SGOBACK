@@ -207,6 +207,8 @@ class Empresa extends Controller
 
         // ✅ Ejecutar lógica de negocio - el modelo ya está configurado con la empresa correcta
         $result = $this->model->getAllEmpresas();
+
+        
         
         // ✅ Respuesta estandarizada con información adicional
         if ($result && $result['success']) {

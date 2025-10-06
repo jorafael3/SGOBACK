@@ -34,12 +34,14 @@ class EmpresaModel extends Model
             FROM SERIESUSR e
             WHERE e.anulado != '1'
             and usuario = :usuario";
-            $params = [":usuario" => "jralvarado"];
+
+            $params = [
+                ":usuario" => "jralvarado"
+            ];
             // $stmt = $this->query($sql);
             // return $stmt;
-
             // Estando conectado a Cartimex, consultar datos de Computron
-            $stmt = $this->queryInEmpresa('pruebas_computron', "SELECT * FROM SERIESUSR WHERE anulado != '1' AND usuario = :usuario", [":usuario" => "jralvarado"]);
+            $stmt = $this->queryInEmpresa($sql, $params);
             return $stmt;
 
         } catch (Exception $e) {
