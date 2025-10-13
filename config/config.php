@@ -86,7 +86,7 @@ define('JWT_SECRET', $_ENV['JWT_SECRET'] ?? '$s($ecretKey123');
 define('BCRYPT_ROUNDS', 12);
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 900); // 15 minutos
-define('TOKEN_EXPIRATION', 24 * 60 * 60); // 24 horas
+define('TOKEN_EXPIRATION', 72 * 60 * 60); // 72 horas
 // define('ROOT_PATH', dirname(__DIR__));
 
 // Configuración de archivos

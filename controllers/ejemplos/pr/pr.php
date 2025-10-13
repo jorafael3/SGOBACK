@@ -17,12 +17,13 @@ class Pr extends Controller
 
     function p()
     {
-        // echo json_encode("asdasdasd");
-        // exit();
-        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
-        if (!$jwtData) {
-            return; // La respuesta de error ya fue enviada automáticamente
-        }
+        echo json_encode("asdasdasd");
+        exit();
+
+        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        // if (!$jwtData) {
+        //     return; // La respuesta de error ya fue enviada automáticamente
+        // }
 
         $result = $this->model->getAllEmpresas();
     }
