@@ -11,6 +11,7 @@ class Controller
 {
     protected $view;
     protected $model;
+    protected $jwtError; // Para almacenar errores de JWT
     public $folder = null;
     public function __construct()
     {
@@ -281,14 +282,18 @@ class Controller
         $authHeader = $headers['Authorization'] ?? '';
         $jwt = str_replace('Bearer ', '', $authHeader);
         
-        // Validar JWT usando JwtHelper
+        // Validar JWT usando JwtHelper con validación detallada
         require_once __DIR__ . '/JwtHelper.php';
-        if (!JwtHelper::validateJwt($jwt)) {
+        $validationResult = JwtHelper::validateJwtDetailed($jwt);
+        
+        if (!$validationResult['valid']) {
+            // Almacenar el error para uso posterior
+            $this->jwtError = $validationResult;
             return false;
         }
         
-        // Decodificar JWT
-        $jwtData = JwtHelper::decodeJwt($jwt);
+        // Usar el payload del resultado de validación
+        $jwtData = $validationResult['payload'];
         
         // Configurar modelo con la empresa del JWT si existe
         if ($this->model && isset($jwtData['empresa']) && method_exists($this->model, 'setEmpresa')) {
@@ -309,14 +314,59 @@ class Controller
         if ($requiredMethod > 0) {
             $methods = ['', 'GET', 'POST', 'PUT', 'DELETE'];
             if ($_SERVER['REQUEST_METHOD'] !== $methods[$requiredMethod]) {
-                $this->jsonResponse(["success" => false, 'error' => 'Método no permitido'], 405);
+                $this->jsonResponse([
+                    "success" => false, 
+                    'error' => 'Método no permitido',
+                    'error_code' => 'METHOD_NOT_ALLOWED'
+                ], 405);
                 return false;
             }
         }
         
         $jwtData = $this->configureModelWithJWT();
         if (!$jwtData) {
-            $this->jsonResponse(["success" => false, 'error' => 'Token JWT inválido o expirado'], 401);
+            // Determinar el código HTTP y mensaje basado en el tipo de error JWT
+            $errorInfo = $this->jwtError ?? [
+                'error' => 'TOKEN_UNKNOWN_ERROR',
+                'message' => 'Error desconocido de autenticación'
+            ];
+            
+            $httpCode = 401; // Por defecto
+            $errorResponse = [
+                "success" => false,
+                'error' => $errorInfo['message'],
+                'error_code' => $errorInfo['error']
+            ];
+            
+            // Códigos específicos según el tipo de error
+            switch ($errorInfo['error']) {
+                case 'TOKEN_MISSING':
+                    $httpCode = 401;
+                    $errorResponse['requires_login'] = true;
+                    break;
+                    
+                case 'TOKEN_EXPIRED':
+                    $httpCode = 401;
+                    $errorResponse['requires_login'] = true;
+                    $errorResponse['session_expired'] = true;
+                    $errorResponse['expired_at'] = $errorInfo['expired_at'] ?? null;
+                    break;
+                    
+                case 'TOKEN_INVALID_SIGNATURE':
+                case 'TOKEN_MALFORMED':
+                case 'TOKEN_DECODE_ERROR':
+                    $httpCode = 401;
+                    $errorResponse['requires_login'] = true;
+                    $errorResponse['invalid_token'] = true;
+                    break;
+                    
+                default:
+                    $httpCode = 401;
+                    $errorResponse['requires_login'] = true;
+                    break;
+            }
+            
+            $this->jsonResponse($errorResponse, $httpCode);
             return false;
         }
         

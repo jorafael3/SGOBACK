@@ -137,6 +137,46 @@ class Database
         }
     }
 
+    public function execute($query, $params = [])
+    {
+        try {
+            $connection = $this->connect();
+            if (!$connection) return false;
+
+            $stmt = $connection->prepare($query);
+            $result = $stmt->execute($params);
+            
+            if ($result) {
+                $res = array(
+                    "success" => true,
+                    "querymessage" => "Operación ejecutada correctamente",
+                    "affected_rows" => $stmt->rowCount(),
+                    "last_insert_id" => $connection->lastInsertId()
+                );
+                $this->logInfo("Operación ejecutada: $query");
+                return $res;
+            } else {
+                $err = $stmt->errorInfo();
+                $res = array(
+                    "success" => false,
+                    "querymessage" => "Error en la operación",
+                    "message" => "Ocurrió un error al ejecutar la acción, vuelva a intentarlo en un momento, si el problema persiste contacte al administrador",
+                    "error" => $err,
+                    "query" => $query
+                );
+                return $res;
+            }
+        } catch (PDOException $e) {
+            $res = array(
+                "success" => false,
+                "querymessage" => "Error en la operación",
+                "message" => "Ocurrió un error al ejecutar la acción, vuelva a intentarlo en un momento, si el problema persiste contacte al administrador",
+                "error" => $e->getMessage()
+            );
+            return $res;
+        }
+    }
+
     public function lastInsertId()
     {
         return $this->connection ? $this->connection->lastInsertId() : null;
@@ -155,6 +195,52 @@ class Database
     public function rollback()
     {
         return $this->connection ? $this->connection->rollback() : false;
+    }
+
+    /**
+     * Fuerza una reconexión cerrando la conexión actual
+     */
+    public function forceReconnect()
+    {
+        $this->connection = null;
+        return $this->connect();
+    }
+
+    /**
+     * Limpia el cache de instancias de una empresa específica
+     */
+    public static function clearInstanceCache($empresaCode = null)
+    {
+        if ($empresaCode) {
+            if (isset(self::$instances[$empresaCode])) {
+                self::$instances[$empresaCode]->connection = null;
+                unset(self::$instances[$empresaCode]);
+            }
+        } else {
+            // Limpiar todas las instancias
+            foreach (self::$instances as $instance) {
+                $instance->connection = null;
+            }
+            self::$instances = [];
+        }
+    }
+
+    /**
+     * Obtiene información de debug sobre las conexiones activas
+     */
+    public static function getActiveConnections()
+    {
+        $connections = [];
+        foreach (self::$instances as $empresaCode => $instance) {
+            $connections[$empresaCode] = [
+                'connected' => $instance->connection !== null,
+                'config' => [
+                    'host' => $instance->config['host'] ?? 'N/A',
+                    'database' => $instance->config['database'] ?? 'N/A'
+                ]
+            ];
+        }
+        return $connections;
     }
 
     private function handleConnectionError(PDOException $e)

@@ -9,7 +9,7 @@
  */
 class Model
 {
-    protected $db;
+    public $db;  // Cambiar de protected a public
     protected $table;
     protected $primaryKey = 'id';
     protected $fillable = [];
@@ -44,8 +44,25 @@ class Model
             throw new Exception("No se encontró configuración para la empresa: " . $empresaCode);
         }
         
+        // Si cambiamos de empresa, limpiar cache de la anterior
+        if ($this->empresaCode !== $empresaCode && $this->empresaCode) {
+            Database::clearInstanceCache($this->empresaCode);
+            
+            if (DEBUG) {
+                error_log("Model: Cambiando de empresa '{$this->empresaCode}' a '{$empresaCode}'");
+            }
+        }
+        
         $this->empresaCode = $empresaCode;
         $this->db = Database::getInstance($this->empresaCode, $this->empresasConfig);
+        
+        // Forzar reconexión para asegurar que usamos la base de datos correcta
+        $this->db->forceReconnect();
+        
+        if (DEBUG) {
+            error_log("Model: Conectado exitosamente a empresa: " . $empresaCode);
+        }
+        
         return $this;
     }
 
@@ -262,6 +279,33 @@ class Model
             
         } catch (Exception $e) {
             $this->logError("Error en consulta cross-empresa: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Ejecuta una operación INSERT/UPDATE/DELETE en una empresa específica
+     * @param string $empresaCode Código de la empresa
+     * @param string $sql Consulta SQL
+     * @param array $params Parámetros de la consulta
+     * @return array|false Resultado de la operación
+     */
+    protected function executeInEmpresa($empresaCode, $sql, $params = [])
+    {
+        try {
+            // Validar que la empresa existe
+            if (!isset($this->empresasConfig[$empresaCode])) {
+                throw new Exception("No se encontró configuración para la empresa: " . $empresaCode);
+            }
+            
+            // Obtener instancia temporal de base de datos para la otra empresa
+            $tempDb = Database::getInstance($empresaCode, $this->empresasConfig);
+            
+            // Ejecutar operación en la otra empresa
+            return $tempDb->execute($sql, $params);
+            
+        } catch (Exception $e) {
+            $this->logError("Error en operación cross-empresa: " . $e->getMessage());
             return false;
         }
     }
