@@ -205,7 +205,8 @@ class VerificarFacturas extends Controller
 
             $productos_series = $data['detalle_verificacion'] ?? null;
             $factura = $data['factura'] ?? null;
-            $BODEGAS = explode(',', $data['bodegas'][0] ?? null)   ?? null;
+            // $BODEGAS = explode(',', $data['bodegas'][0] ?? null)   ?? null;
+            $BODEGAS = $data['bodegas'] ?? null;
 
 
             // echo json_encode($BODEGAS);

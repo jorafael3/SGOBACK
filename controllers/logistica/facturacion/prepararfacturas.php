@@ -233,6 +233,7 @@ class PrepararFacturas extends Controller
         
         $debugInfo = [
             'jwt_empresa' => $jwtData['empresa'] ?? 'N/A',
+            'jwt_empresa_name' => $jwtData['empresa_name'] ?? 'N/A',
             'jwt_usuario' => $jwtData['usuario'] ?? 'N/A',
             'model_empresa' => $this->model->empresaCode ?? 'N/A',
             'active_connections' => Database::getActiveConnections(),
@@ -259,6 +260,7 @@ class PrepararFacturas extends Controller
         $this->jsonResponse([
             'success' => true,
             'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+            'empresa_name' => $jwtData['empresa_name'] ?? 'N/A',
             'usuario_actual' => $jwtData['usuario'] ?? 'N/A',
             'token_valid' => true
         ], 200);
@@ -290,6 +292,7 @@ class PrepararFacturas extends Controller
                 'success' => true,
                 'token_valid' => true,
                 'empresa' => $payload['empresa'] ?? 'N/A',
+                'empresa_name' => $payload['empresa_name'] ?? 'N/A',
                 'usuario' => $payload['usuario'] ?? 'N/A',
                 'expires_at' => isset($payload['exp']) ? date('Y-m-d H:i:s', $payload['exp']) : 'N/A'
             ], 200);

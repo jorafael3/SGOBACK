@@ -80,8 +80,14 @@ class LoginModel extends Model
             // Login exitoso
             // $this->clearFailedAttempts($username);
             // $this->updateLastLogin($user['id']);
-            $user["data"][0]["empresa"] = $empresa_code ?? $this->empresaCode;
-            $user["data"][0]["empresa_code"] = $empresa_code ?? $this->empresaCode;
+            $empresaActual = $empresa_code ?? $this->empresaCode;
+            $user["data"][0]["empresa"] = $empresaActual;
+            $user["data"][0]["empresa_code"] = $empresaActual;
+            
+            // Agregar el nombre de la empresa desde la configuración
+            global $EMPRESAS;
+            $user["data"][0]["empresa_name"] = $EMPRESAS[$empresaActual]['name'] ?? 'Empresa Desconocida';
+            
             // Remover campos sensibles
             unset($user['data'][0]['clave']);
 

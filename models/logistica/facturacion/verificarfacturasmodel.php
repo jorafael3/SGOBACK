@@ -229,10 +229,10 @@ class VerificarFacturasModel extends Model
                 SET
                     Estado= 'VERIFICADA'
                     -- verificado = :verificado,
-				WHERE Factura='0000945881' and LTRIM(RTRIM(bodegaid)) = :bodega";
+				WHERE Factura=:factura and LTRIM(RTRIM(bodegaid)) = :bodega";
             $params2 = [
                 // ":verificado" => $datos['usuario'],
-                // ":factura" => $datos['factura_id'],
+                ":factura" => $datos['factura_id'],
                 // ":tipo" => $datos['tipo'],
                 ":bodega" => $datos['bodega']
             ];

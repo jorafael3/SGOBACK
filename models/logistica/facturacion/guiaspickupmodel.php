@@ -9,7 +9,7 @@ class GuiasPickupModel extends Model
     {
         // Usar la empresa por defecto del sistema si no se especifica
         parent::__construct($empresaCode);
-        
+
         // Debug: mostrar qué empresa estás usando
         if (DEBUG) {
             error_log("GuiasPickupModel conectado a: " . $this->empresaCode);
@@ -25,7 +25,7 @@ class GuiasPickupModel extends Model
             $params = [
                 ":usuario" => $data['usrid']
             ];
-            
+
             $stmt = $this->query($sql, $params);
             return $stmt;
         } catch (Exception $e) {
@@ -53,6 +53,36 @@ class GuiasPickupModel extends Model
             $sql = "UPDATE FACTURASLISTAS 
                 SET 
                     Estado='DESPACHADA',
+                    id_unico = :id_unico,
+                    GUIA = :GUIA,
+                    FECHAGUIA = GETDATE(),
+                    GUIAPOR = :usrid
+                WHERE Factura = :factura_id
+                AND bodegaID = :bodega_id
+                ";
+
+            $params = [
+                ":id_unico" => $datos['id_unico'],
+                ":factura_id" => $datos['factura'],
+                ":bodega_id" => $datos['bodega'],
+                ":GUIA" => $datos['numeroGuia'],
+                ":usrid" => $datos['usrid']
+            ];
+
+            $result = $this->db->execute($sql, $params);
+            return $result;
+        } catch (Exception $e) {
+            $this->logError("Error actualizando facturas listas: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function ActualizarFacturasListasParaConsolidacion($datos)
+    {
+        try {
+            $sql = "UPDATE FACTURASLISTAS 
+                SET 
+                    Estado='CONSOLIDADA',
                     id_unico = :id_unico
                 WHERE Factura = :factura_id
                 AND bodegaID = :bodega_id
@@ -72,6 +102,7 @@ class GuiasPickupModel extends Model
         }
     }
 
+
     function GuardarListaGuias($datos)
     {
         try {
@@ -80,18 +111,49 @@ class GuiasPickupModel extends Model
                 factura_id,
                 bodega,
                 guia,
-                creado_por
+                creado_por,
+                id_unico
             ) VALUES (
                 :factura_id,
                 :bodega,
                 :guia,
+                :creado_por,
+                :id_unico
+            )";
+
+            $params = [
+                ":factura_id" => $datos['factura'],
+                ":bodega" => $datos['bodegaInfo'][0],
+                ":id_unico" => $datos['id_unico'],
+                ":guia" => $datos['numeroGuia'],
+                ":creado_por" => $datos['usrid']
+            ];
+
+            $result = $this->db->execute($sql, $params);
+            return $result;
+        } catch (Exception $e) {
+            $this->logError("Error guardando lista de guías: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function GuardarCambioTipoPedido($datos)
+    {
+        try {
+            $sql = "INSERT INTO SGO_FACTURASLISTAS_LOG_TIPOPEDIDOSFACTURA
+            (
+                factura_id,
+                tipo,
+                creado_por
+            ) VALUES (
+                :factura_id,
+                :tipo,
                 :creado_por
             )";
 
             $params = [
                 ":factura_id" => $datos['factura'],
-                ":bodega" => $datos['bodega'],
-                ":guia" => $datos['guia'],
+                ":tipo" => $datos['tipo'],
                 ":creado_por" => $datos['usrid']
             ];
 

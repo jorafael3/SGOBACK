@@ -100,6 +100,7 @@ class Login extends Controller
             'sub' => $user['usrid'],
             'username' => $user['usuario'],
             'empresa' => $user['empresa'],
+            'empresa_name' => $user['empresa_name'] ?? 'Empresa Desconocida',
             'iat' => time(),
             'exp' => time() + $expTime // Expira en $expTime segundos
         ]);

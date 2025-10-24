@@ -22,7 +22,7 @@ class GuiasPickup extends Controller
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
-        
+
         $data = $this->getJsonInput();
         $usuario = $data['usrid'] ?? null;
         if (!$usuario) {
@@ -32,7 +32,7 @@ class GuiasPickup extends Controller
             ], 400);
             return;
         }
-        
+
         $result = $this->model->getFacturasGuiasPickup($data);
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -48,11 +48,11 @@ class GuiasPickup extends Controller
 
     function GetTransporteGuiasPickup()
     {
-        $jwtData = $this->authenticateAndConfigureModel(1); // 1 = GET/POST opcional
+        $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
-        
+
         $result = $this->model->getTransporteGuiasPickup();
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -72,35 +72,68 @@ class GuiasPickup extends Controller
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
-        
+
+
+
         $data = $this->getJsonInput();
 
-        $BODEGAS = explode(',', $data['bodegas'][0] ?? null)   ?? null;
+
+
+        $BODEGAS = explode(',', $data['bodegaInfo'][0] ?? null)   ?? null;
         $id_unico = date('YmdHis') . rand(1000, 9999);
+        $es_consolidado = $data['consolidacion']["activada"];
+
+
         $data['id_unico'] = $id_unico;
         $data['usrid'] = $data['userdata']["usrid"] ?? null;
+        $data['es_consolidado'] = $es_consolidado;
+        $data['numeroGuia'] = $es_consolidado ? $data['consolidacion']["guia"] : $data['numeroGuia'];
 
         $this->model->db->beginTransaction();
 
+        // echo json_encode($data);
+        // exit;
 
         $ERRORESFACTURAS = [];
         $ERRORESGUIA = [];
-        foreach ($BODEGAS as $bodega) {
-            $data['bodega'] = $bodega;
-            $FACTURASLI = $this->model->ActualizarFacturasListas($data);
-            if (!$FACTURASLI) {
-                $ERRORESFACTURAS[] = $bodega;
+
+
+
+
+        if ($es_consolidado == true) {
+            foreach ($BODEGAS as $bodega) {
+                $data['bodega'] = $bodega;
+                $FACTURASLI = $this->model->ActualizarFacturasListasParaConsolidacion($data);
+                if (!$FACTURASLI) {
+                    $ERRORESFACTURAS[] = $bodega;
+                }
+            }
+
+            // json_encode($data);
+            // exit();
+        } else {
+            foreach ($BODEGAS as $bodega) {
+                $data['bodega'] = $bodega;
+                $FACTURASLI = $this->model->ActualizarFacturasListas($data);
+                if (!$FACTURASLI) {
+                    $ERRORESFACTURAS[] = $bodega;
+                }
             }
         }
 
-        foreach ($data['guiasPorBodega'] as $guia) {
-            $guia['factura'] = $data["factura"];
-            $guia['usrid'] = $data["usrid"];
-            $FACTURAS = $this->model->GuardarListaGuias($guia);
-            if (!$FACTURAS) {
-                $ERRORESGUIA[] = $guia;
-            }
-        }
+
+
+        $GUIAS = $this->model->GuardarListaGuias($data);
+
+
+        // foreach ($data['guiasPorBodega'] as $guia) {
+        //     $guia['factura'] = $data["factura"];
+        //     $guia['usrid'] = $data["usrid"];
+        //     $FACTURAS = $this->model->GuardarListaGuias($guia);
+        //     if (!$FACTURAS) {
+        //         $ERRORESGUIA[] = $guia;
+        //     }
+        // }
 
         if (count($ERRORESFACTURAS) + count($ERRORESGUIA) > 0) {
             $this->model->db->rollback();
@@ -110,11 +143,33 @@ class GuiasPickup extends Controller
             ], 500);
             return;
         }
-
+        $this->model->db->commit();
         $this->jsonResponse([
             'success' => true,
             'message' => 'Datos guardados correctamente',
-            'data_recibida' => $data
+            'data_recibida' => $GUIAS
         ], 200);
+    }
+
+    function GuardarCambioTipoPedido()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->GuardarCambioTipoPedido($data);
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al guardar cambio tipo pedido',
+                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                "respuesta" => $result
+            ], 200);
+        }
     }
 }
