@@ -26,6 +26,19 @@ class obligacionesbancarias extends Controller
             ], 200);
         }
     }
+    function Cargar_Tipos_Obligaciones(){
+        $result = $this->model->Cargar_Tipos_Obligaciones();
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener transporte guías pickup',
+                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                "respuesta" => $result
+            ], 200);
+        }
+    }
 
     function Calcular_Amortizacion()
     {

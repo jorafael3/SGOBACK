@@ -44,6 +44,17 @@ class ObligacionesBancariasModel extends Model
         }
     }
 
+    function Cargar_Tipos_Obligaciones()
+    {
+        try {
+            $sql = "SELECT * FROM SGO_AMORTIZACION_TIPOS WHERE estado=1";
+            $query = $this->db->query($sql, []);
+            return $query;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     function Guardar_Modelo_Amortizacion($params)
     {
 
