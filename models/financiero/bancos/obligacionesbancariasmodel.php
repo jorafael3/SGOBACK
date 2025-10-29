@@ -383,6 +383,12 @@ class ObligacionesBancariasModel extends Model
             $cuota_fija = floatval($DATOS_REAJUSTE['cuota_fija']);
             $creado_por = isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema';
 
+            $sql = "UPDATE SGO_AMORTIZACION_DT SET dt_activo = 0 WHERE cabecera_id = :cabecera_id";
+            $params = [
+                ":cabecera_id" => $amortizacion_id
+            ];
+            $result = $this->db->execute($sql, $params);
+
             $sql = "INSERT INTO SGO_AMORTIZACION_CAB_REAJUSTE
                     (
                         cabecera_id,
