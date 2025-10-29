@@ -20,7 +20,7 @@ class GuiasPickupModel extends Model
     function getFacturasGuiasPickup($data = [])
     {
         try {
-            $sql = "EXECUTE SGO_LOG_GUIAS_PIKUP_FACTURAS @usuario = :usuario";
+            $sql = "EXECUTE SGO_LOG_GUIAS_PIKUP_FACTURAS_2 @usuario = :usuario";
 
             $params = [
                 ":usuario" => $data['usrid']

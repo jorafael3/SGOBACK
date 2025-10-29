@@ -19,11 +19,12 @@ include_once 'includes/user_session.php';
 $userSession = new User_Session();
 $user = new User();
 
-$data = new Database();
+// $data = new Database();
+$app = new App();
 
-if ($data->connect()) {
-    //echo "true";
-    $app = new App();
-} else {
-    //include_once 'views/errores/500.php';
-}
+// if ($data->connect()) {
+//     //echo "true";
+//     $app = new App();
+// } else {
+//     //include_once 'views/errores/500.php';
+// }

@@ -66,7 +66,7 @@ for ($i = 1; $i <= 10; $i++) { // soporta hasta 10 empresas (puedes ajustar)
 }
 
 // Empresa por defecto
-define('DEFAULT_EMPRESA', $_ENV['EMPRESA1_CODE'] ?? array_key_first($EMPRESAS));
+define('DEFAULT_EMPRESA', $_ENV['EMPRESA3_CODE'] ?? array_key_first($EMPRESAS));
 
 // Hacer la variable $EMPRESAS disponible globalmente
 $GLOBALS['EMPRESAS'] = $EMPRESAS;

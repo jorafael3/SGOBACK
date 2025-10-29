@@ -7,8 +7,8 @@ class GuiasPickup extends Controller
     /**
      * Constructor de la clase Empresa
      * Inicializa el modelo de empresa
-     */
-
+     **/
+    
     public function __construct()
     {
         parent::__construct();
@@ -33,9 +33,67 @@ class GuiasPickup extends Controller
             return;
         }
 
+
+
         $result = $this->model->getFacturasGuiasPickup($data);
         if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
+
+            $datos = $result['data'];
+            $FATURAS_UNICAS = [];
+            for ($i = 0; $i < count($datos); $i++) {
+                if (in_array($datos[$i]["FACTURA_ID"], $FATURAS_UNICAS)) {
+                    continue;
+                }
+                $FATURAS_UNICAS[] = $datos[$i]["FACTURA_ID"];
+            }
+            $ARRAY_DATOS = [];
+            for ($i = 0; $i < count($FATURAS_UNICAS); $i++) {
+                $filtradas = array_filter($datos, fn($item) => $item["FACTURA_ID"] === $FATURAS_UNICAS[$i]);
+                if (count($filtradas) > 0) {
+                    $CONSOLIDAR = 0;
+                    $IDS_BODEGA = "";
+                    for ($j = 0; $j < count($filtradas); $j++) {
+                        if ($filtradas[$j]["MULTIBODEGA"] == 'SI' && $filtradas[$j]["CONSOLIDAR_FACTURA"] == 1) {
+                            $CONSOLIDAR++;
+                        }
+                        $IDS_BODEGA .= $filtradas[$j]["BODEGAID"] . ",";
+                    }
+                    if ($CONSOLIDAR >= 1) {
+                        $CODIGOS_VERIFICADAS = "";
+                        $IDS_VERIFICADAS = "";
+                        $CODIGOS_CONSOLIDADAS = "";
+                        $IDS_CONSOLIDADAS = "";
+                        for ($j = 0; $j < count($filtradas); $j++) {
+                            if ($filtradas[$j]["FACTURA_LISTA_ESTADO"] == 0) {
+                                $CODIGOS_VERIFICADAS .= $filtradas[$j]["BODEGA_CODIGO"] . ",";
+                                $IDS_VERIFICADAS .= $filtradas[$j]["BODEGAID"] . ",";
+                            }
+                            if ($filtradas[$j]["FACTURA_LISTA_ESTADO"] == 1) {
+                                $CODIGOS_CONSOLIDADAS .= $filtradas[$j]["BODEGA_CODIGO"] . ",";
+                                $IDS_CONSOLIDADAS .= $filtradas[$j]["BODEGAID"] . ",";
+                            }
+                            $filtradas[$j]["CODIGOS_VERIFICADAS"] = rtrim($CODIGOS_VERIFICADAS, ",");
+                            $filtradas[$j]["CODIGOS_CONSOLIDADAS"] = rtrim($CODIGOS_CONSOLIDADAS, ",");
+                            $filtradas[$j]["IDS_VERIFICADAS"] = rtrim($IDS_VERIFICADAS, ",");
+                            $filtradas[$j]["IDS_CONSOLIDADAS"] = rtrim($IDS_CONSOLIDADAS, ",");
+                            $filtradas[$j]["IDS_BODEGA"] = rtrim($IDS_BODEGA, ",");
+                        }
+
+                        array_push($ARRAY_DATOS, $filtradas[count($filtradas) - 1]);
+                    } else {
+                        $filtradas[0]["IDS_BODEGA"] = rtrim($IDS_BODEGA, ",");
+                        array_push($ARRAY_DATOS, $filtradas[0]);
+                    }
+                }
+            }
+
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Facturas guías pickup obtenidas correctamente',
+                'data' => $ARRAY_DATOS,
+                "res" => $result
+            ], 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
