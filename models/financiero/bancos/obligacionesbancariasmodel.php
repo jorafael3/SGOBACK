@@ -111,7 +111,7 @@ class ObligacionesBancariasModel extends Model
                 :TIPO_GENERAL,
                 :proveedorid
             )";
-        $params = array(
+        $parames = array(
             ':detalle' => $nombre,
             ':capital' => $capital,
             ':tasa' => $tasa,
@@ -128,11 +128,62 @@ class ObligacionesBancariasModel extends Model
             ':TIPO_GENERAL' => $TIPO_GENERAL,
             ':proveedorid' => $PROVEEDOR
         );
-        $result = $this->db->execute($sql, $params);
+        $result = $this->db->execute($sql, $parames);
         $detallet = $this->Guardar_Detalle_Amortizacion($DETALLE, $this->db->lastInsertId());
+        $detalletAcr = $this->Guardar_Acreedores_Amortizacion($DETALLE, $this->db->lastInsertId(), $params);
         $result['insertId'] = $this->db->lastInsertId();
         $result['detallet'] = $detallet;
+        $result['detalletAcr'] = $detalletAcr;
         return $result;
+    }
+
+    function Guardar_Acreedores_Amortizacion($DETALLE, $AMORTIZACION, $params)
+    {
+        try {
+            $amortizacion_id = str_pad($AMORTIZACION, 10, "0", STR_PAD_LEFT);
+            $detalle = $params['nombre'];
+            $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor']["id"] : '';
+            $asientoID = '';
+            $GUARD = [];
+            $ERR = [];
+            for ($i = 0; $i < count($DETALLE); $i++) {
+                $sql = "SGO_AMORTIZACION_ACR_INSERT 
+                @acreedorid    = :acreedorid,
+                @documentoID   = :documentoID,
+                @asientoID     = :asientoID,
+                @detalle       = :detalle,
+                @valor         = :valor,
+                @fecha         = :fecha,
+                @vencimiento   = :vencimiento,
+                @rubroid       = :rubroid,
+                @CuentaID      = :CuentaID,
+                @saldo         = :saldo,
+                @creadoPor     = :creadoPor";
+                $params = [
+                    ":acreedorid" => $PROVEEDOR,
+                    ":documentoID" => $amortizacion_id,
+                    ":asientoID" => $asientoID,
+                    ":detalle" => $detalle,
+                    ":valor" => floatval($DETALLE[$i]['abonoCapital']),
+                    ":fecha" => $DETALLE[$i]['fechaPago'],
+                    ":vencimiento" => $DETALLE[$i]['fechaPago'],
+                    ":rubroid" => '',
+                    ":CuentaID" => '',
+                    ":saldo" => floatval($DETALLE[$i]['abonoCapital']),
+                    ":creadoPor" => isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema'
+                ];
+                $query = $this->db->execute($sql, $params);
+                if ($query['success'] === false) {
+                    $err = $query["error"];
+                    $ERR[] = 'Error al guardar la amortización: ' . $err;
+                }else{
+                    $GUARD[] = $query;
+                }
+            }
+            return [$ERR, $GUARD];
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
     }
 
     function Guardar_Detalle_Amortizacion($DETALLE, $AMORTIZACION)
@@ -190,6 +241,7 @@ class ObligacionesBancariasModel extends Model
                     $ERR[] = 'Error al guardar el detalle: ' . $err[2];
                 }
             }
+            return $ERR;
         } catch (Exception $e) {
             echo json_encode([
                 'success' => false,

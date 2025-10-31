@@ -8,7 +8,7 @@ class GuiasPickup extends Controller
      * Constructor de la clase Empresa
      * Inicializa el modelo de empresa
      **/
-    
+
     public function __construct()
     {
         parent::__construct();
@@ -22,7 +22,6 @@ class GuiasPickup extends Controller
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
-
         $data = $this->getJsonInput();
         $usuario = $data['usrid'] ?? null;
         if (!$usuario) {
@@ -32,12 +31,8 @@ class GuiasPickup extends Controller
             ], 400);
             return;
         }
-
-
-
         $result = $this->model->getFacturasGuiasPickup($data);
         if ($result && $result['success']) {
-
             $datos = $result['data'];
             $FATURAS_UNICAS = [];
             for ($i = 0; $i < count($datos); $i++) {
@@ -52,11 +47,17 @@ class GuiasPickup extends Controller
                 if (count($filtradas) > 0) {
                     $CONSOLIDAR = 0;
                     $IDS_BODEGA = "";
+                    $CODIGOS_VERIFICADAS = "";
+                    $ES_CENTRO_CONSOLIDADO = 0;
                     for ($j = 0; $j < count($filtradas); $j++) {
                         if ($filtradas[$j]["MULTIBODEGA"] == 'SI' && $filtradas[$j]["CONSOLIDAR_FACTURA"] == 1) {
                             $CONSOLIDAR++;
                         }
+                        if ($filtradas[$j]["CENTRO_CONSOLIDADO"] == 1) {
+                            $ES_CENTRO_CONSOLIDADO = 1;
+                        }
                         $IDS_BODEGA .= $filtradas[$j]["BODEGAID"] . ",";
+                        $CODIGOS_VERIFICADAS .= $filtradas[$j]["BODEGA_CODIGO"] . ",";
                     }
                     if ($CONSOLIDAR >= 1) {
                         $CODIGOS_VERIFICADAS = "";
@@ -77,17 +78,16 @@ class GuiasPickup extends Controller
                             $filtradas[$j]["IDS_VERIFICADAS"] = rtrim($IDS_VERIFICADAS, ",");
                             $filtradas[$j]["IDS_CONSOLIDADAS"] = rtrim($IDS_CONSOLIDADAS, ",");
                             $filtradas[$j]["IDS_BODEGA"] = rtrim($IDS_BODEGA, ",");
+                            $filtradas[$j]["CENTRO_CONSOLIDADO"] = $ES_CENTRO_CONSOLIDADO;
                         }
-
                         array_push($ARRAY_DATOS, $filtradas[count($filtradas) - 1]);
                     } else {
                         $filtradas[0]["IDS_BODEGA"] = rtrim($IDS_BODEGA, ",");
+                        $filtradas[0]["CODIGOS_VERIFICADAS"] = rtrim($CODIGOS_VERIFICADAS, ",");
                         array_push($ARRAY_DATOS, $filtradas[0]);
                     }
                 }
             }
-
-
             $this->jsonResponse([
                 'success' => true,
                 'message' => 'Facturas guías pickup obtenidas correctamente',
@@ -137,7 +137,8 @@ class GuiasPickup extends Controller
 
 
 
-        $BODEGAS = explode(',', $data['bodegaInfo'][0] ?? null)   ?? null;
+        // $BODEGAS = explode(',', $data['bodegaInfo'][0] ?? null)   ?? null;
+        $BODEGAS = $data['bodegaInfo'] ?? null;
         $id_unico = date('YmdHis') . rand(1000, 9999);
         $es_consolidado = $data['consolidacion']["activada"];
 
@@ -149,14 +150,10 @@ class GuiasPickup extends Controller
 
         $this->model->db->beginTransaction();
 
-        // echo json_encode($data);
+        // echo json_encode($BODEGAS);
         // exit;
-
         $ERRORESFACTURAS = [];
         $ERRORESGUIA = [];
-
-
-
 
         if ($es_consolidado == true) {
             foreach ($BODEGAS as $bodega) {
@@ -166,7 +163,6 @@ class GuiasPickup extends Controller
                     $ERRORESFACTURAS[] = $bodega;
                 }
             }
-
             // json_encode($data);
             // exit();
         } else {
@@ -179,10 +175,7 @@ class GuiasPickup extends Controller
             }
         }
 
-
-
         $GUIAS = $this->model->GuardarListaGuias($data);
-
 
         // foreach ($data['guiasPorBodega'] as $guia) {
         //     $guia['factura'] = $data["factura"];
@@ -198,7 +191,7 @@ class GuiasPickup extends Controller
             $this->jsonResponse([
                 'success' => false,
                 'message' => 'Error al actualizar las facturas en las bodegas: ' . implode(', ', $ERRORESFACTURAS),
-            ], 500);
+            ], 200);
             return;
         }
         $this->model->db->commit();

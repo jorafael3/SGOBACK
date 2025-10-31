@@ -26,7 +26,8 @@ class obligacionesbancarias extends Controller
             ], 200);
         }
     }
-    function Cargar_Tipos_Obligaciones(){
+    function Cargar_Tipos_Obligaciones()
+    {
         $result = $this->model->Cargar_Tipos_Obligaciones();
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -253,22 +254,34 @@ class obligacionesbancarias extends Controller
         //     return; // La respuesta de error ya fue enviada automáticamente
         // }
         $params = $this->getJsonInput();
-        // echo json_encode($params);
-        // exit;
+
+        $this->model->db->beginTransaction();
 
         $result = $this->model->Guardar_Modelo_Amortizacion($params);
-        if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
-        } else {
+        // echo json_encode($result);
+        // exit;
+        if ($result['success'] === false || count($result['detallet']) > 0 || count($result['detalletAcr'][0]) > 0) {
+            $this->model->db->rollBack();
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener transporte guías pickup',
+                'error' => 'Error al guardar el modelo de amortización',
                 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
                 "respuesta" => $result
             ], 200);
         }
-    }
 
+        if ($result && $result['success']) {
+            $this->model->db->commit();
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al guardar el modelo de amortización',
+                // 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                "respuesta" => $result
+            ], 200);
+        }
+    }
     /**
      * Lista los modelos de amortización guardados
      */
