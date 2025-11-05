@@ -19,7 +19,7 @@ class UsuariosModel extends Model
                 UPPER(nombre) as nombre,
                 clave as clave,
                 anulado,
-                Departamento,
+                isnull(Departamento, '-') as Departamento,
                 EmpleadoID,
                 CASE WHEN isnull(email_sgo,'-') = '-' or LTRIM(RTRIM(email_sgo)) = '' THEN '-' ELSE email_sgo END as email,
                 isgerencia,
@@ -98,4 +98,6 @@ class UsuariosModel extends Model
             return false;
         }
     }
+
+    
 }
