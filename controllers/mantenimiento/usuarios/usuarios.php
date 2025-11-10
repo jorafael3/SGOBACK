@@ -130,7 +130,12 @@ class Usuarios extends Controller
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
-        $result = $this->model->getMenuUsuario("");
+        $data = $this->getJsonInput();
+        $usrid = $data['sessionData']['usrid'] ?? '';
+        $empleado_empresa = $data['sessionData']['empleado_empresa'] ?? '';
+        // echo json_encode($data);
+        // exit;
+        $result = $this->model->getMenuUsuario($usrid, $empleado_empresa);
 
         if ($result && $result['success']) {
             // Convertir estructura plana a jerárquica
@@ -251,7 +256,7 @@ class Usuarios extends Controller
         $usuarioId = $data['usrid'] ?? '';
         $empresa = $data['empresa'] ?? '';
 
-        $result = $this->model->getMenuUsuarioAsignacion($usuarioId,$empresa);
+        $result = $this->model->getMenuUsuarioAsignacion($usuarioId, $empresa);
 
         if ($result && $result['success']) {
             // Convertir estructura plana a jerárquica con asignación
