@@ -103,7 +103,7 @@ class UsuariosModel extends Model
     function getMenuUsuario($usrid)
     {
         try {
-            $sql = "SGO_MENU_PORUSUARIO 'CARTIMEX','0000000386'";
+            $sql = "CARTIMEX..SGO_MENU_PORUSUARIO 'CARTIMEX','0000000386'";
             $params = [];
             $stmt = $this->query($sql, $params);
             return $stmt;
