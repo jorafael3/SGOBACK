@@ -25,6 +25,7 @@ class UsuariosModel extends Model
                 isgerencia,
                 d.departamento_id,
                 is_admin,
+                empleado_empresa,
                 CASE WHEN isnull(d.departamento_nombre,'-') = '-' or LTRIM(RTRIM(d.departamento_nombre)) = '' THEN '-' ELSE d.departamento_nombre END as departamento_log
                 from " . $data["empresa"] . "..SERIESUSR u
                 left join " . $data["empresa"] . "..SERIESUSR_DEPARTAMENTOS d
@@ -99,5 +100,91 @@ class UsuariosModel extends Model
         }
     }
 
-    
+    function getMenuUsuario($usrid)
+    {
+        try {
+            $sql = "SGO_MENU_PORUSUARIO 'CARTIMEX','0000000386'";
+            $params = [];
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo menús de usuario: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function getMenuUsuarioAsignacion($usrid,$empresa)
+    {
+        try {
+            $sql = "SGO_MENU_USUARIOS_ASIGNACION '$empresa','$usrid'";
+            $params = [];
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo menús de usuario: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function ActualizarUsuario($data)
+    {
+        try {
+            $sql = "UPDATE SERIESUSR SET 
+                nombre = :nombre,
+                clave = :clave,
+                Departamento = :Departamento,
+                EmpleadoID = :EmpleadoID,
+                email_sgo = :email_sgo,
+                isgerencia = :isgerencia,
+                departamento_id = :departamento_id,
+                is_admin = :is_admin
+                WHERE usrid = :usrid";
+            $params = [
+                ':nombre' => $data['nombre'],
+                ':clave' => $data['clave'],
+                ':Departamento' => $data['Departamento'],
+                ':EmpleadoID' => $data['EmpleadoID'],
+                ':email_sgo' => $data['email'],
+                ':isgerencia' => $data['isgerencia'],
+                ':departamento_id' => $data['departamento_id'],
+                ':is_admin' => $data['is_admin'],
+                ':usrid' => $data['usrid']
+            ];
+            $stmt = $this->db->execute($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo menús de usuario: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function ActualizarMenusUsuario($usrid, $menus)
+    {
+        try {
+            // Primero eliminar los menús existentes para el usuario
+            $sqlDelete = "DELETE FROM SGO_MENU_USUARIOS WHERE UsuarioId = :usrid";
+            $paramsDelete = [':usrid' => $usrid];
+            $this->db->execute($sqlDelete, $paramsDelete);
+            // Luego insertar los nuevos menús
+            foreach ($menus as $menuId) {
+                $sqlInsert = "INSERT INTO SGO_MENU_USUARIOS (UsuarioId, MenuId) VALUES (:usrid, :menu_id)";
+                $paramsInsert = [
+                    ':usrid' => $usrid,
+                    ':menu_id' => $menuId
+                ];
+                $this->db->execute($sqlInsert, $paramsInsert);
+            }
+            return [
+                'success' => true,
+                'message' => 'Menús actualizados exitosamente'
+            ];
+        } catch (Exception $e) {
+            $this->logError("Error actualizando menús de usuario: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error actualizando menús de usuario: ' . $e->getMessage()
+            ];
+        }
+    }
 }
+

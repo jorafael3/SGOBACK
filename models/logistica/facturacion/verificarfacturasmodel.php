@@ -227,11 +227,12 @@ class VerificarFacturasModel extends Model
             $stmt = $this->db->execute($sql, $params);
             $sql2 = "UPDATE facturaslistas 
                 SET
-                    Estado= 'VERIFICADA'
-                    -- verificado = :verificado,
+                    Estado= 'VERIFICADA',
+                    verificado = :verificado,
+                    FechaVerificado = GETDATE()
 				WHERE Factura=:factura and LTRIM(RTRIM(bodegaid)) = :bodega";
             $params2 = [
-                // ":verificado" => $datos['usuario'],
+                ":verificado" => $datos['usuario'],
                 ":factura" => $datos['factura_id'],
                 // ":tipo" => $datos['tipo'],
                 ":bodega" => $datos['bodega']

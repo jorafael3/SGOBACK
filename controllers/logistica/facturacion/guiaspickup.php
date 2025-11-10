@@ -174,8 +174,13 @@ class GuiasPickup extends Controller
                 }
             }
         }
+        if ($es_consolidado == true) {
+            foreach ($BODEGAS as $bodega) {
+                $data['bodega'] = $bodega;
+                $GUIAS = $this->model->GuardarListaGuias($data);
+            }
+        }
 
-        $GUIAS = $this->model->GuardarListaGuias($data);
 
         // foreach ($data['guiasPorBodega'] as $guia) {
         //     $guia['factura'] = $data["factura"];
@@ -198,7 +203,7 @@ class GuiasPickup extends Controller
         $this->jsonResponse([
             'success' => true,
             'message' => 'Datos guardados correctamente',
-            'data_recibida' => $GUIAS
+            // 'data_recibida' => $GUIAS
         ], 200);
     }
 

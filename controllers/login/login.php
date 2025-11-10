@@ -160,5 +160,6 @@ class Login extends Controller
             $this->jsonResponse(['error' => 'Error al registrar usuario'], 500);
         }
     }
-    // ...
+
+  
 }

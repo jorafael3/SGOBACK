@@ -52,8 +52,8 @@ class GuiasPickupModel extends Model
         try {
             $sql = "UPDATE FACTURASLISTAS 
                 SET 
-                    Estado='DESPACHADA',
-                    id_unico = :id_unico,
+                    Estado='INGRESADAGUIA',
+                   -- id_unico = :id_unico,
                     GUIA = :GUIA,
                     FECHAGUIA = GETDATE(),
                     GUIAPOR = :usrid
@@ -62,7 +62,7 @@ class GuiasPickupModel extends Model
                 ";
 
             $params = [
-                ":id_unico" => $datos['id_unico'],
+                // ":id_unico" => $datos['id_unico'],
                 ":factura_id" => $datos['factura'],
                 ":bodega_id" => $datos['bodega'],
                 ":GUIA" => $datos['numeroGuia'],
@@ -123,7 +123,7 @@ class GuiasPickupModel extends Model
 
             $params = [
                 ":factura_id" => $datos['factura'],
-                ":bodega" => $datos['bodegaInfo'][0],
+                ":bodega" => $datos['bodega'],
                 ":id_unico" => $datos['id_unico'],
                 ":guia" => $datos['numeroGuia'],
                 ":creado_por" => $datos['usrid']
