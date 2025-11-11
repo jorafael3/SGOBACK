@@ -108,7 +108,29 @@ class LoginModel extends Model
     private function getUserByUsername($username)
     {
         try {
-            $sql = "SELECT * FROM SERIESUSR WHERE usuario = :username";
+            $sql = "SELECT
+                    u.*,
+                    e.Nombre as EMPLEADO_NOMBRE,
+                    d.Nombre as EMPLEADO_DEPARTAMENTO_NOMBRE,
+                    d.ID as EMPLEADO_DEPARTAMENTO_ID,
+                    s.Código as SUCURSAL_EMPLEADO,
+                    s.ID as SUCURSAL_EMPLEADO_ID,
+                    b.Nombre as BODEGA_EMPLEADO_NOMBRE,
+                    b.Código as BODEGA_EMPLEADO_CODIGO,
+                    b.ID as BODEGA_EMPLEADO_ID
+                    from SERIESUSR u
+                    left join EMP_EMPLEADOS e
+                    on e.ID = u.EmpleadoID
+                    left join SIS_DEPARTAMENTOS d
+                    on d.ID = e.DepartamentoID
+                    left join SIS_SUCURSALES s
+                    on s.ID = u.lugartrabajo
+                    left join(
+                        SELECT top 1 * from INV_BODEGAS
+                        order by Código
+                    ) as b on b.Sucursal = s.Código
+                WHERE u.usuario = :username
+                ";
             $stmt = $this->query($sql, [
                 ':username' => $username
             ]);
