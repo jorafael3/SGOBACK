@@ -5,11 +5,28 @@ class MPPs extends Controller
     public function __construct()
     {
         parent::__construct();
-        // $this->folder = 'oym/'; // Especifica la carpeta donde está el modelo
-        // $this->loadModel('mpps'); // Cargar el modelo correcto
+        $this->folder = 'oym/'; // Especifica la carpeta donde está el modelo
+        $this->loadModel('mpps'); // Cargar el modelo correcto
     }
 
-    private function resolveDestinationFolder($rawSubpath)
+    private function sanitizeSegment(string $p): string
+    {
+        $p = trim($p);
+        if ($p === '' || $p === '.' || $p === '..')
+            return '';
+        // Cambia cualquier char que no sea [A-Za-z0-9_-] por "_"
+        return preg_replace('/[^A-Za-z0-9_\-]/', '_', $p);
+    }
+
+    private function normalizeDept($dept): string
+    {
+        $dept = str_replace(['\\', '/'], '_', $dept);
+        $dept = preg_replace('/[:*?"<>|]/', '_', $dept);
+        $dept = $this->sanitizeSegment($dept);
+        return $dept !== '' ? $dept : 'SIN_DEPARTAMENTO';
+    }
+
+    private function resolveDestinationFolder($rawSubpath, array $data = [])
     {
 
         $SO = PHP_OS;
@@ -33,34 +50,57 @@ class MPPs extends Controller
             ];
         }
 
-        $rawSubpath = trim((string) $rawSubpath, "\\/ \t\n\r\0\x0B");
-        $subPathSegments = [];
+        $isAdmin = ((string) ($data['userdata']['is_admin'] ?? '0')) === '1';
 
+        $rawSubpath = trim((string) $rawSubpath, "\\/ \t\n\r\0\x0B");
+        $segments = [];
         if ($rawSubpath !== '') {
-            $parts = preg_split('#[\\/]+#', $rawSubpath);
-            foreach ($parts as $p) {
-                $p = trim($p);
-                if ($p === '' || $p === '.' || $p === '..') {
-                    continue;
-                }
-                $safe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $p);
-                if ($safe !== '') {
-                    $subPathSegments[] = $safe;
-                }
+            foreach (preg_split('#[\\/]+#', $rawSubpath) as $p) {
+                $safe = $this->sanitizeSegment($p);
+                if ($safe !== '')
+                    $segments[] = $safe;
             }
         }
 
-        if (!empty($subPathSegments)) {
-            $relativePath = implode(DIRECTORY_SEPARATOR, $subPathSegments);
-            $destinationFolder = $realBase . DIRECTORY_SEPARATOR . $relativePath;
-        } else {
-            $relativePath = '';
-            $destinationFolder = $realBase;
+        if (empty($segments)) {
+            return [
+                'success' => true,
+                'path' => $realBase,
+                'realPath' => $realBase,
+                'base' => $realBase,
+                'relativePath' => '',
+                'isAdmin' => $isAdmin,
+                'module' => ''
+            ];
+        }
+        $module = array_shift($segments);
+        $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos'];
+        if (!in_array($module, $allowedModules, true)) {
+            return ['success' => false, 'message' => 'Módulo inválido.'];
         }
 
-        $realDest = realpath($destinationFolder);
+        $scoped = [$module];
 
-        if ($realDest !== false && strpos($realDest, $realBase) !== 0) {
+        if ($isAdmin) {
+            $scoped = array_merge($scoped, $segments);
+        } else {
+            $dept = $this->normalizeDept($data['userdata']['EMPLEADO_DEPARTAMENTO_NOMBRE']);
+            if (empty($segments)) {
+                $scoped[] = $dept;
+            } else {
+                if ($segments[0] !== $dept) {
+                    array_unshift($segments, $dept);
+                }
+                $scoped = array_merge($scoped, $segments);
+            }
+        }
+
+        $relativePath = implode(DIRECTORY_SEPARATOR, $scoped);
+        $destinationFolder = $realBase . ($relativePath !== '' ? DIRECTORY_SEPARATOR . $relativePath : '');
+
+        // $realDest = realpath($destinationFolder);
+        $realDest = file_exists($destinationFolder) ? realpath($destinationFolder) : null;
+        if ($realDest !== false && $realDest !== null && strpos($realDest, $realBase) !== 0) {
             return [
                 'success' => false,
                 'message' => 'Ruta de destino fuera de la base permitida.'
@@ -72,7 +112,8 @@ class MPPs extends Controller
             'path' => $destinationFolder,
             'realPath' => $realDest,
             'base' => $realBase,
-            'relativePath' => $relativePath
+            'relativePath' => $relativePath,
+            'isAdmin' => $isAdmin
         ];
     }
 
@@ -82,12 +123,13 @@ class MPPs extends Controller
         if (!$jwtData)
             return;
 
+        $data = $this->getJsonInput();
         $body = json_decode(file_get_contents('php://input'), true);
         $rawSubpath = (json_last_error() === JSON_ERROR_NONE && is_array($body))
             ? ($body['subpath'] ?? '')
             : ($_POST['subpath'] ?? '');
 
-        $res = $this->resolveDestinationFolder($rawSubpath);
+        $res = $this->resolveDestinationFolder($rawSubpath, $data);
 
         if (!$res['success']) {
             return $this->jsonResponse([
@@ -99,8 +141,40 @@ class MPPs extends Controller
         $realPath = $res['realPath'];
         $base = $res['base'];
         $currentRelative = $res['relativePath'] ?? '';
+        $isAdmin = $res['isAdmin'];
+
+        $metaIndex = $this->loadMetaIndex($base);
+        $files = [];
 
         $currentRelative = str_replace('\\', '/', $currentRelative);
+
+        $parts = array_values(array_filter(explode('/', $currentRelative)));
+
+        // ADMIN:
+        if ($isAdmin && count($parts) === 1) {
+            $module = $parts[0];
+            $this->seedDepartmentFolders($base, $module);
+            $moduleDir = $res['realPath'] ?? ($base . DIRECTORY_SEPARATOR . $module);
+            if (!is_dir($moduleDir)) {
+                $moduleDir = $base . DIRECTORY_SEPARATOR . $module;
+            }
+            if (!is_dir($moduleDir)) {
+                return $this->jsonResponse(['success' => true, 'folders' => [], 'files' => [], 'currentPath' => $currentRelative]);
+            }
+            $items = array_values(array_diff(scandir($moduleDir), ['.', '..', '.mpps_meta.json']));
+            $folders = [];
+            foreach ($items as $it) {
+                $full = $moduleDir . DIRECTORY_SEPARATOR . $it;
+                if (is_dir($full)) {
+                    $folders[] = ['name' => $it, 'path' => $module . '/' . $it];
+                }
+            }
+            return $this->jsonResponse(['success' => true, 'folders' => $folders, 'files' => [], 'currentPath' => $currentRelative]);
+        }
+
+        if ($res['realPath'] === false || !is_dir($res['realPath'])) {
+            @mkdir($res['path'], 0777, true);
+        }
 
         if ($realPath === false || !is_dir($realPath)) {
             return $this->jsonResponse([
@@ -112,45 +186,35 @@ class MPPs extends Controller
             ]);
         }
 
-        $metaIndex = $this->loadMetaIndex($base);
-
-        $items = array_values(array_diff(scandir($realPath), ['.', '..']));
+        $items = array_values(array_diff(scandir($realPath), ['.', '..', '.mpps_meta.json']));
         $folders = [];
         $files = [];
 
         foreach ($items as $it) {
-            if ($it === '.mpps_meta.json') {
+            if ($it === '.mpps_meta.json')
                 continue;
-            }
 
             $full = $realPath . DIRECTORY_SEPARATOR . $it;
-
-            $relPath = $currentRelative !== ''
-                ? $currentRelative . '/' . $it
-                : $it;
+            $relPath = $currentRelative !== '' ? ($currentRelative . '/' . $it) : $it;
             $relPath = str_replace('\\', '/', $relPath);
 
             if (is_dir($full)) {
-                $folders[] = [
-                    'name' => $it,
-                    'path' => $relPath
-                ];
-            } else {
-                $info = pathinfo($it);
-                $ext = $info['extension'] ?? '';
-
-                $meta = $metaIndex[$relPath] ?? [];
-
-                $files[] = [
-                    'name' => $meta['name'] ?? $it,
-                    'title' => $meta['title'] ?? $it,
-                    'version' => $meta['version'] ?? '',
-                    'path' => $relPath,
-                    'size' => filesize($full),
-                    'modified' => date('Y-m-d H:i:s', filemtime($full)),
-                    'extension' => $ext
-                ];
+                $folders[] = ['name' => $it, 'path' => $relPath];
+                continue;
             }
+            if (!file_exists($full) || !is_file($full))
+                continue;
+
+            $meta = $metaIndex[$relPath] ?? [];
+            $files[] = [
+                'name' => $meta['name'] ?? $it,
+                'title' => $meta['title'] ?? $it,
+                'version' => $meta['version'] ?? '',
+                'path' => $relPath,
+                'size' => filesize($full),
+                'modified' => date('Y-m-d H:i:s', filemtime($full)),
+                'extension' => pathinfo($it, PATHINFO_EXTENSION) ?? '',
+            ];
         }
 
         return $this->jsonResponse([
@@ -179,8 +243,23 @@ class MPPs extends Controller
                 'message' => 'Nombre de carpeta requerido'
             ], 400);
         }
+        $data = $this->getJsonInput();
+        $isAdmin = ((string) ($data['userdata']['is_admin'] ?? '0')) === '1';
+        if ($isAdmin) {
+            $raw = trim($subpath, "\\/ \t\n\r\0\x0B");
+            $parts = preg_split('#[\\/]+#', $raw);
+            $parts = array_values(array_filter(array_map(function ($p) {
+                $p = trim($p);
+                return ($p === '' || $p === '.' || $p === '..') ? '' : preg_replace('/[^A-Za-z0-9_\-]/', '_', $p);
+            }, $parts)));
 
-        $res = $this->resolveDestinationFolder($subpath);
+            $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos'];
+            if (count($parts) === 2 && in_array($parts[0], $allowedModules, true)) {
+                $dept = $this->normalizeDept($data['userdata']['EMPLEADO_DEPARTAMENTO_NOMBRE'] ?? '');
+                $subpath = $parts[0] . '/' . $dept . '/' . $parts[1];
+            }
+        }
+        $res = $this->resolveDestinationFolder($subpath, $data);
         if (!$res['success']) {
             return $this->jsonResponse([
                 'success' => false,
@@ -239,8 +318,8 @@ class MPPs extends Controller
                 'message' => 'Ruta de carpeta requerida'
             ], 400);
         }
-
-        $res = $this->resolveDestinationFolder($rawSubpath);
+        $data = $this->getJsonInput();
+        $res = $this->resolveDestinationFolder($rawSubpath, $data);
         if (!$res['success']) {
             return $this->jsonResponse([
                 'success' => false,
@@ -327,7 +406,14 @@ class MPPs extends Controller
             }
         }
 
-        $res = $this->resolveDestinationFolder($subpath);
+        $data = [];
+        if (!empty($_POST['userdata'])) {
+            $tmp = json_decode($_POST['userdata'], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($tmp)) {
+                $data['userdata'] = $tmp;
+            }
+        }
+        $res = $this->resolveDestinationFolder($subpath, $data);
         if (
             !$res['success'] ||
             empty($res['realPath']) ||
@@ -427,7 +513,8 @@ class MPPs extends Controller
         $dir = trim(dirname($normalized), '/');
         $file = basename($normalized);
 
-        $res = $this->resolveDestinationFolder($dir === '.' ? '' : $dir);
+        $data = $this->getJsonInput();
+        $res = $this->resolveDestinationFolder($dir === '.' ? '' : $dir, $data);
 
         if (
             !$res['success'] ||
@@ -515,7 +602,8 @@ class MPPs extends Controller
         $newDir = trim(dirname($newPath), '/');
         $newFile = basename($newPath);
 
-        $resSrc = $this->resolveDestinationFolder($dir === '' || $dir === '.' ? '' : $dir);
+        $data = $this->getJsonInput();
+        $resSrc = $this->resolveDestinationFolder($dir === '' || $dir === '.' ? '' : $dir, $data);
         if (!$resSrc['success'] || empty($resSrc['realPath']) || !is_dir($resSrc['realPath'])) {
             return $this->jsonResponse([
                 'success' => false,
@@ -534,7 +622,8 @@ class MPPs extends Controller
             ], 404);
         }
 
-        $resDst = $this->resolveDestinationFolder($newDir === '' || $newDir === '.' ? '' : $newDir);
+        $data = $this->getJsonInput();
+        $resDst = $this->resolveDestinationFolder($newDir === '' || $newDir === '.' ? '' : $newDir, $data);
         if (!$resDst['success'] || empty($resDst['path']) || !is_dir($resDst['path'])) {
             return $this->jsonResponse([
                 'success' => false,
@@ -626,4 +715,46 @@ class MPPs extends Controller
             json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
         );
     }
+
+    public function getDepartamentos()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) return;
+
+        $departamentos = $this->model->getDepartamentos();
+
+        return $this->jsonResponse([
+            'success' => true,
+            'departamentos' => $departamentos
+        ], 200);
+    }
+
+    private function seedDepartmentFolders(string $base, string $module): void
+    {
+        $module = $this->sanitizeSegment($module);
+        if ($module === '')
+            return;
+        $moduleDir = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $module;
+        if (!is_dir($moduleDir)) {
+            @mkdir($moduleDir, 0777, true);
+        }
+
+        $result = $this->model->getDepartamentos();
+        if (!is_array($result)) return;
+
+        $rows = $result['data'] ?? null;
+        if (!is_array($rows)) return;
+        
+        foreach ($rows as $row) {
+            if (!is_array($row)) continue;
+            $nombre = isset($row['Nombre']) ? (string) $row['Nombre'] : '';
+            $safeDept = $this->normalizeDept($nombre);  // ya quita caracteres raros, /, \, etc.
+            if ($safeDept === '') continue;
+            $deptDir = $moduleDir . DIRECTORY_SEPARATOR . $safeDept;
+            if (!is_dir($deptDir)) {
+                @mkdir($deptDir, 0777, true);
+            }
+        }
+    }
+
 }
