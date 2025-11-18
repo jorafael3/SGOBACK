@@ -34,8 +34,13 @@ class LoginModel extends Model
             //     ];
             // }
 
+
+
             // Buscar usuario
             $user = $this->getUserByUsername($username);
+
+            // echo json_encode($user);
+            // exit;
 
             if (!$user["success"]) {
                 $this->recordFailedAttempt($username);
@@ -69,7 +74,7 @@ class LoginModel extends Model
             //         'message' => 'Credenciales inválidas'
             //     ];
             // }
-            if(!($password === $user["data"][0]['clave'])){
+            if(!(strtolower($password) === strtolower($user["data"][0]['clave']))){
                 $this->recordFailedAttempt($username);
                 return [
                     'success' => false,

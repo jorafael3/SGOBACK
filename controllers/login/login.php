@@ -59,6 +59,9 @@ class Login extends Controller
             $password = trim($data['password']) ?? null;
             $empresa_code = trim($data['empresa_code']) ?? null;
 
+            // echo json_encode($data);
+            // exit;
+
             if (empty($username) || empty($password)) {
                 $this->jsonResponse(["success" => false, 'error' => 'Usuario y contraseña son requeridos'], 400);
                 return;
@@ -81,7 +84,7 @@ class Login extends Controller
                 $result['user_data']['token'] = $token;
                 $this->jsonResponse($result, 200);
             } else {
-                $this->jsonResponse($result, 401);
+                $this->jsonResponse($result, 200);
             }
         } catch (Exception $e) {
             error_log("Error en authenticate: " . $e->getMessage());

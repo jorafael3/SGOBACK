@@ -61,7 +61,7 @@ class VerificarFacturas extends Controller
         $bodega = explode(',', $data['bodega'] ?? '') ?? null;
         // $bodega = trim($data['bodega']) ?? null;
 
-        // echo json_encode($bodega);
+        // echo json_encode($data);
         // exit();
 
         if (!$secuencia) {
@@ -95,6 +95,8 @@ class VerificarFacturas extends Controller
             return;
         }
 
+
+
         $BOD = [];
         for ($i = 0; $i < count($bodega); $i++) {
             $BOD[] = trim($bodega[$i]);
@@ -106,10 +108,6 @@ class VerificarFacturas extends Controller
         // $det["data"] = array_merge(...$det);
         $BOD = implode(',', $BOD);
         $det = $this->model->getFacturasDetalleVerificar($cab["data"][0]['Id'], trim($BOD));
-
-
-        // echo json_encode($det);
-        // exit();
 
         $tieneServicios = 0;
         $sinservicios = 0;
@@ -207,10 +205,8 @@ class VerificarFacturas extends Controller
             $factura = $data['factura'] ?? null;
             // $BODEGAS = explode(',', $data['bodegas'][0] ?? null)   ?? null;
             $BODEGAS = $data['bodegas'] ?? null;
+            $EMPRESA = $data['userdata']["empleado_empresa"] ?? null;
 
-
-            // echo json_encode($BODEGAS);
-            // exit;
 
 
             // Validar que los datos requeridos estén presentes
@@ -234,8 +230,14 @@ class VerificarFacturas extends Controller
             $ERRORESFACTURASLIS = [];
 
             $ValidarRma = $this->model->ValidarTieneRmaFacturasCab($factura);
+
+
             if ($ValidarRma['success']) {
                 $RMAID = count($ValidarRma['data']) > 0 ? $ValidarRma['data'][0]['ID'] : "";
+
+                //      echo json_encode($ValidarRma);
+                // exit();
+
                 if (count($ValidarRma['data']) == 0) {
                     $RMA = $this->model->GuardarRmaFacturasCab($data);
                     $result[] = $RMA;
@@ -259,21 +261,25 @@ class VerificarFacturas extends Controller
                         }
                     }
                 }
-                for ($i = 0; $i < count($productos_series); $i++) {
-                    $cantidad_series = $productos_series[$i]['seriesIngresadas'];
-                    for ($j = 0; $j < count($cantidad_series); $j++) {
-                        $d = [
-                            "factura_id" => $factura,
-                            "producto" => $productos_series[$i]['productoId'],
-                            "serie" => $cantidad_series[$j],
-                            "usuario" => $data['usrid']
-                        ];
-                        $SGLSERIES = $this->model->GuardarSGLSeries($d);
-                        if (!$SGLSERIES || !$SGLSERIES['success']) {
-                            $ERRORESERIES[] = $SGLSERIES;
+
+                if ($EMPRESA == 'CARTIMEX') {
+                    for ($i = 0; $i < count($productos_series); $i++) {
+                        $cantidad_series = $productos_series[$i]['seriesIngresadas'];
+                        for ($j = 0; $j < count($cantidad_series); $j++) {
+                            $d = [
+                                "factura_id" => $factura,
+                                "producto" => $productos_series[$i]['productoId'],
+                                "serie" => $cantidad_series[$j],
+                                "usuario" => $data['usrid']
+                            ];
+                            $SGLSERIES = $this->model->GuardarSGLSeries($d);
+                            if (!$SGLSERIES || !$SGLSERIES['success']) {
+                                $ERRORESERIES[] = $SGLSERIES;
+                            }
                         }
                     }
                 }
+
                 for ($i = 0; $i < count($BODEGAS); $i++) {
 
                     $d = [

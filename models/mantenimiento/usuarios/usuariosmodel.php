@@ -13,7 +13,8 @@ class UsuariosModel extends Model
     function getUsuarios($data = [])
     {
         try {
-            $sql = "SELECT --top 10  
+            if ($data["empresa"] == "CARTIMEX") {
+                $sql = "SELECT --top 10  
                 usrid,
                 UPPER(usuario) as usuario,
                 UPPER(nombre) as nombre,
@@ -27,11 +28,33 @@ class UsuariosModel extends Model
                 is_admin,
                 empleado_empresa,
                 CASE WHEN isnull(d.departamento_nombre,'-') = '-' or LTRIM(RTRIM(d.departamento_nombre)) = '' THEN '-' ELSE d.departamento_nombre END as departamento_log
-                from " . $data["empresa"] . "..SERIESUSR u
-                left join " . $data["empresa"] . "..SERIESUSR_DEPARTAMENTOS d
+                from CARTIMEX..SERIESUSR u
+                left join CARTIMEX..SERIESUSR_DEPARTAMENTOS d
                 on d.departamento_id = u.departamento_id
                 where anulado = 0
                 Order by usuario asc";
+            } else {
+                $sql = "SELECT --top 10  
+                usrid,
+                UPPER(usuario) as usuario,
+                UPPER(u.nombre) as nombre,
+                clave as clave,
+                u.anulado,
+                isnull(Departamento, '-') as Departamento,
+                EmpleadoID,
+                CASE WHEN isnull(email_sgo,'-') = '-' or LTRIM(RTRIM(email_sgo)) = '' THEN '-' ELSE email_sgo END as email,
+                isgerencia,
+                '-' as departamento_id,
+                is_admin,
+                empleado_empresa,
+                s.Nombre as departamento_log
+                -- CASE WHEN isnull(d.departamento_nombre,'-') = '-' or LTRIM(RTRIM(d.departamento_nombre)) = '' THEN '-' ELSE d.departamento_nombre END as departamento_log
+                from COMPUTRONSA..SERIESUSR u
+                left join SIS_SUCURSALES s on s.ID = u.lugartrabajo
+                where u.anulado = 0
+                Order by usuario asc";
+            }
+
             $params = [];
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -103,7 +126,7 @@ class UsuariosModel extends Model
     function getMenuUsuario($usrid, $empresa)
     {
         try {
-            $sql = "CARTIMEX..SGO_MENU_PORUSUARIO '$empresa','0000000386'";
+            $sql = "CARTIMEX..SGO_MENU_PORUSUARIO '$empresa','$usrid'";
             $params = [];
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -113,7 +136,7 @@ class UsuariosModel extends Model
         }
     }
 
-    function getMenuUsuarioAsignacion($usrid,$empresa)
+    function getMenuUsuarioAsignacion($usrid, $empresa)
     {
         try {
             $sql = "SGO_MENU_USUARIOS_ASIGNACION '$empresa','$usrid'";
@@ -187,4 +210,3 @@ class UsuariosModel extends Model
         }
     }
 }
-

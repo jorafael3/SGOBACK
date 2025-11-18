@@ -24,6 +24,7 @@ class GuiasPickup extends Controller
         }
         $data = $this->getJsonInput();
         $usuario = $data['usrid'] ?? null;
+        $empresa = $data['userdata']["empleado_empresa"] ?? null;
         if (!$usuario) {
             $this->jsonResponse([
                 'success' => false,
@@ -32,6 +33,11 @@ class GuiasPickup extends Controller
             return;
         }
         $result = $this->model->getFacturasGuiasPickup($data);
+
+        if ($empresa == "COMPUTRON") {
+            echo json_encode($result);
+            exit;
+        }
         if ($result && $result['success']) {
             $datos = $result['data'];
             $FATURAS_UNICAS = [];

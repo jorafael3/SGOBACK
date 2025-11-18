@@ -19,6 +19,9 @@ class Usuarios extends Controller
         }
         $data = $this->getJsonInput();
 
+        // echo json_encode($data);
+        // exit;
+
         $result = $this->model->getUsuarios($data);
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -39,8 +42,12 @@ class Usuarios extends Controller
             return; // La respuesta de error ya fue enviada automáticamente
         }
         $data = $this->getJsonInput();
+        $result = [];
 
-        $result = $this->model->getDepartamentosLogistica();
+        if ($data["empresa"] == "CARTIMEX") {
+            $result = $this->model->getDepartamentosLogistica();
+        }
+
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
         } else {
@@ -133,10 +140,10 @@ class Usuarios extends Controller
         $data = $this->getJsonInput();
         $usrid = $data['sessionData']['usrid'] ?? '';
         $empleado_empresa = $data['sessionData']['empleado_empresa'] ?? '';
-        // echo json_encode($data);
-        // exit;
-        $result = $this->model->getMenuUsuario($usrid, $empleado_empresa);
 
+        $result = $this->model->getMenuUsuario($usrid, $empleado_empresa);
+        // echo json_encode($result);
+        // exit;
         if ($result && $result['success']) {
             // Convertir estructura plana a jerárquica
             $menuJerarquico = $this->construirMenuJerarquico($result['data']);
@@ -257,6 +264,8 @@ class Usuarios extends Controller
         $empresa = $data['empresa'] ?? '';
 
         $result = $this->model->getMenuUsuarioAsignacion($usuarioId, $empresa);
+        // echo json_encode($result);
+        // exit;
 
         if ($result && $result['success']) {
             // Convertir estructura plana a jerárquica con asignación
@@ -265,7 +274,8 @@ class Usuarios extends Controller
             $this->jsonResponse([
                 'success' => true,
                 'data' => $menuJerarquico,
-                "respuesta" => $data
+                "respuesta" => $data,
+                "empresa" => $empresa
             ], 200);
         } else {
             $this->jsonResponse([
