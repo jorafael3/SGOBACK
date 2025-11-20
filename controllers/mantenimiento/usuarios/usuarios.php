@@ -42,9 +42,9 @@ class Usuarios extends Controller
             return; // La respuesta de error ya fue enviada automáticamente
         }
         $data = $this->getJsonInput();
-        $result = [];
+        $result = ["success" => true, "data" => []];
 
-        if ($data["empresa"] == "CARTIMEX") {
+        if (strtoupper($data["empresa"]) == "CARTIMEX") {
             $result = $this->model->getDepartamentosLogistica();
         }
 
@@ -53,7 +53,7 @@ class Usuarios extends Controller
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener facturas guías pickup',
+                'error' => 'Error al obtener GetDepartamentosLogistica',
                 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
                 "respuesta" => $result
             ], 200);
