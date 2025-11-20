@@ -20,6 +20,7 @@ class ObligacionesBancariasModel extends Model
     function Buscar_proveedores($data = [])
     {
         try {
+            $nombre = '';
             if ($data['nombre'] == "") {
                 $sql = "SELECT id,Nombre,Código as codigo  from ACR_ACREEDORES
                     where Anulado = '0'
@@ -38,9 +39,19 @@ class ObligacionesBancariasModel extends Model
             }
             $stmt = $this->query($sql, $params);
             return $stmt;
+            // return [
+            //     'success'      => true,
+            //     'querymessage' => 'Consulta ejecutada correctamente',
+            //     'data'         => $stmt
+            // ];
         } catch (Exception $e) {
             $this->logError("Error obteniendo facturas guías pickup: " . $e->getMessage());
             return false;
+            // return [
+            //     'success'      => false,
+            //     'querymessage' => 'Error obteniendo proveedores',
+            //     'data'         => []
+            // ];
         }
     }
 
@@ -48,7 +59,7 @@ class ObligacionesBancariasModel extends Model
     {
         try {
             $sql = "SELECT * FROM SGO_AMORTIZACION_TIPOS WHERE estado=1";
-            $query = $this->db->query($sql, []);
+            $query = $this->db->query($sql, []);            
             return $query;
         } catch (Exception $e) {
             return [];

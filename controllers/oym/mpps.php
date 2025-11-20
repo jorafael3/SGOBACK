@@ -245,6 +245,12 @@ class MPPs extends Controller
         }
         $data = $this->getJsonInput();
         $isAdmin = ((string) ($data['userdata']['is_admin'] ?? '0')) === '1';
+        if (!$isAdmin) {
+            return $this->jsonResponse([
+                'success' => false,
+                'message' => 'No tiene permisos para crear carpetas.'
+            ], 403);
+        }
         if ($isAdmin) {
             $raw = trim($subpath, "\\/ \t\n\r\0\x0B");
             $parts = preg_split('#[\\/]+#', $raw);
@@ -254,10 +260,13 @@ class MPPs extends Controller
             }, $parts)));
 
             $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos'];
-            if (count($parts) === 2 && in_array($parts[0], $allowedModules, true)) {
-                $dept = $this->normalizeDept($data['userdata']['EMPLEADO_DEPARTAMENTO_NOMBRE'] ?? '');
-                $subpath = $parts[0] . '/' . $dept . '/' . $parts[1];
+            if (!isset($parts[0]) || !in_array($parts[0], $allowedModules, true)) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Módulo inválido para crear carpeta.'
+                ], 400);
             }
+            $subpath = implode('/', $parts);
         }
         $res = $this->resolveDestinationFolder($subpath, $data);
         if (!$res['success']) {
