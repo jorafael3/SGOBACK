@@ -74,7 +74,7 @@ class MPPs extends Controller
             ];
         }
         $module = array_shift($segments);
-        $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos'];
+        $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos', 'contratos'];
         if (!in_array($module, $allowedModules, true)) {
             return ['success' => false, 'message' => 'Módulo inválido.'];
         }
@@ -259,7 +259,7 @@ class MPPs extends Controller
                 return ($p === '' || $p === '.' || $p === '..') ? '' : preg_replace('/[^A-Za-z0-9_\-]/', '_', $p);
             }, $parts)));
 
-            $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos'];
+            $allowedModules = ['manuales_de_funciones', 'politicas', 'procedimientos', 'contratos'];
             if (!isset($parts[0]) || !in_array($parts[0], $allowedModules, true)) {
                 return $this->jsonResponse([
                     'success' => false,
