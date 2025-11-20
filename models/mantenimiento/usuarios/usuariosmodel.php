@@ -13,7 +13,7 @@ class UsuariosModel extends Model
     function getUsuarios($data = [])
     {
         try {
-            if ($data["empresa"] == "CARTIMEX") {
+            if (strtoupper($data["empresa"]) == "CARTIMEX") {
                 $sql = "SELECT --top 10  
                 usrid,
                 UPPER(usuario) as usuario,
@@ -168,9 +168,9 @@ class UsuariosModel extends Model
                 ':Departamento' => $data['Departamento'],
                 ':EmpleadoID' => $data['EmpleadoID'],
                 ':email_sgo' => $data['email'],
-                ':isgerencia' => $data['isgerencia'],
+                ':isgerencia' => $data['isgerencia'] == true ? 1 : 0,
                 ':departamento_id' => $data['departamento_id'],
-                ':is_admin' => $data['is_admin'],
+                ':is_admin' => $data['is_admin'] == true ? 1 : 0,
                 ':usrid' => $data['usrid']
             ];
             $stmt = $this->db->execute($sql, $params);
