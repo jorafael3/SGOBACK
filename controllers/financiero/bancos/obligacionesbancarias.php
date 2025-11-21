@@ -261,7 +261,7 @@ class obligacionesbancarias extends Controller
         // echo json_encode($result);
         // exit;
         if ($result['success'] === false || count($result['detallet']) > 0 || count($result['detalletAcr'][0]) > 0) {
-            $this->model->db->rollBack();
+            // $this->model->db->rollBack();
             $this->jsonResponse([
                 'success' => false,
                 'error' => 'Error al guardar el modelo de amortización',
@@ -271,7 +271,7 @@ class obligacionesbancarias extends Controller
         }
 
         if ($result && $result['success']) {
-            $this->model->db->commit();
+            // $this->model->db->commit();
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse([
@@ -279,7 +279,7 @@ class obligacionesbancarias extends Controller
                 'error' => 'Error al guardar el modelo de amortización',
                 // 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
                 "respuesta" => $result
-            ], 200);
+            ], 500);
         }
     }
     /**

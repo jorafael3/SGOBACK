@@ -59,7 +59,7 @@ class ObligacionesBancariasModel extends Model
     {
         try {
             $sql = "SELECT * FROM SGO_AMORTIZACION_TIPOS WHERE estado=1";
-            $query = $this->db->query($sql, []);            
+            $query = $this->db->query($sql, []);
             return $query;
         } catch (Exception $e) {
             return [];
@@ -82,7 +82,8 @@ class ObligacionesBancariasModel extends Model
         $referencia = isset($params['referencia']) ? $params['referencia'] : '';
         $tipo_obligacion = isset($params['tipo_obligacion']) ? intval($params['tipo_obligacion']) : 0;
         $TIPO_GENERAL = "COMPUESTA";
-        $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor']["id"] : '';
+        // $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor']["id"] : '';
+        $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor'] : '';
 
         $usuario = isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema';
         $DETALLE = isset($params['datos']) ? $params['datos'] : [];
@@ -153,7 +154,8 @@ class ObligacionesBancariasModel extends Model
         try {
             $amortizacion_id = str_pad($AMORTIZACION, 10, "0", STR_PAD_LEFT);
             $detalle = $params['nombre'];
-            $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor']["id"] : '';
+            // $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor']["id"] : '';
+            $PROVEEDOR = isset($params['proveedor']) ? $params['proveedor'] : '';
             $asientoID = '';
             $GUARD = [];
             $ERR = [];
@@ -187,7 +189,7 @@ class ObligacionesBancariasModel extends Model
                 if ($query['success'] === false) {
                     $err = $query["error"];
                     $ERR[] = 'Error al guardar la amortización: ' . $err;
-                }else{
+                } else {
                     $GUARD[] = $query;
                 }
             }
@@ -254,12 +256,10 @@ class ObligacionesBancariasModel extends Model
             }
             return $ERR;
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al guardar el detalle: ' . $e->getMessage()
-            ]);
-            exit();
+            $ERR[] = 'Excepción al guardar el detalle: ' . $e->getMessage();
         }
+
+        return $ERR;
     }
 
     function Cargar_Amortizaciones()
@@ -292,7 +292,7 @@ class ObligacionesBancariasModel extends Model
             $otros = isset($params['otros_valores']) ? floatval($params['otros_valores']) : ($capital * 0.005); // Default: 0.5% del capital
             $cuotafija = isset($params['cuota_fija']) ? floatval($params['cuota_fija']) : 0;
             $taza_mensual = isset($params['tasa_mensual']) ? floatval($params['tasa_mensual']) : 0;
-            $tabla =  $this->generar_tabla_francesa($capital, $tasa, $plazo, $tipo_pago, $fecha_primer_pago, $otros, $cuotafija, $taza_mensual);
+            $tabla = $this->generar_tabla_francesa($capital, $tasa, $plazo, $tipo_pago, $fecha_primer_pago, $otros, $cuotafija, $taza_mensual);
             $result[$i]["amortizacion"] = $tabla;
             $result[$i]["amortizacion_detalle"] = $this->Cargar_Detalle_Amortizacion($result[$i]['id']);
         }
