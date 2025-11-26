@@ -3,7 +3,7 @@
 // require_once __DIR__ . '/../logsmodel.php';
 
 
-class OpcionesModel extends Model
+class ObligacionesModel extends Model
 {
     public function __construct($empresaCode = null)
     {
@@ -26,6 +26,27 @@ class OpcionesModel extends Model
             return [];
         }
     }
+    
+    function Cargar_ACC_CuentasGastos()
+    {
+        try {
+            $sql = "SELECT * FROM ACC_CUENTAS WITH (NOLOCK) where Anulado=0 and Tipo='DETALLE' and Clase='62'";
+            $query = $this->db->query($sql, []);
+            return $query;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+    function Cargar_ACC_CuentasPasivos_Provision()
+    {
+        try {
+            $sql = "SELECT * FROM ACC_CUENTAS WITH (NOLOCK) where Anulado=0 and Tipo='DETALLE' and Clase='12'";
+            $query = $this->db->query($sql, []);
+            return $query;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
 
     function Actualizar_cuentas_obligaciones($data)
     {
@@ -37,8 +58,8 @@ class OpcionesModel extends Model
             $nombre = $data['nombre'] ?? '';
             $cuenta = $data['cuenta'] ?? '';
             $estado = $data['estado'] ?? 1;
-            $cuentaDebe = $data['cuentaDebe'] ?? '';
-            $cuentaHaber = $data['cuentaHaber'] ?? '';
+            $cuentaPasivo = $data['cuentaPasivo'] ?? '';
+            $cuentaProvision = $data['cuentaProvision'] ?? '';
             $cuentaGasto = $data['cuentaGasto'] ?? '';
 
             if ($id > 0) {
@@ -47,9 +68,9 @@ class OpcionesModel extends Model
                     SET nombre      = :nombre,
                         cuenta      = :cuenta,
                         estado      = :estado,
-                        cuentaDebe  = :cuentaDebe,
-                        cuentaHaber = :cuentaHaber,
-                        cuentaGasto = :cuentaGasto
+                        cuentaGasto = :cuentaGasto,
+                        cuentaPasivo  = :cuentaPasivo,
+                        cuentaProvision = :cuentaProvision
                     WHERE id = :id
                 ";
                 $param = [
@@ -57,25 +78,25 @@ class OpcionesModel extends Model
                     ':nombre' => $nombre,
                     ':cuenta' => $cuenta,
                     ':estado' => $estado,
-                    ':cuentaDebe' => $cuentaDebe,
-                    ':cuentaHaber' => $cuentaHaber,
-                    ':cuentaGasto' => $cuentaGasto
+                    ':cuentaGasto' => $cuentaGasto,
+                    ':cuentaPasivo' => $cuentaPasivo,
+                    ':cuentaProvision' => $cuentaProvision,
                 ];
                 $result = $this->db->execute($sqlUpdate, $param);
             } else {
                 $sqlInsert = "
                     INSERT INTO SGO_AMORTIZACION_TIPOS
-                        (nombre, cuenta, estado, cuentaDebe, cuentaHaber, cuentaGasto)
+                        (nombre, cuenta, estado, cuentaGasto, cuentaPasivo, cuentaProvision)
                     VALUES
-                        (:nombre, :cuenta, :estado, :cuentaDebe, :cuentaHaber, :cuentaGasto)
+                        (:nombre, :cuenta, :estado, :cuentaGasto, :cuentaPasivo, :cuentaProvision)
                 ";
                 $param = [
                     ':nombre' => $nombre,
                     ':cuenta' => $cuenta,
                     ':estado' => $estado,
-                    ':cuentaDebe' => $cuentaDebe,
-                    ':cuentaHaber' => $cuentaHaber,
-                    ':cuentaGasto' => $cuentaGasto
+                    ':cuentaGasto' => $cuentaGasto,
+                    ':cuentaPasivo' => $cuentaPasivo,
+                    ':cuentaProvision' => $cuentaProvision,
                 ];
                 $result = $this->db->execute($sqlInsert, $param);
             }

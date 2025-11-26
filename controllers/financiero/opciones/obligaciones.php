@@ -1,19 +1,47 @@
 <?php
-require_once __DIR__ . '../../../libs/JwtHelper.php';
+require_once __DIR__ . '../../../../libs/JwtHelper.php';
 // require_once __DIR__ . '/../models/empresamodel.php';
 
-class opciones extends Controller
+class obligaciones extends Controller
 {
     public function __construct()
     {
         parent::__construct();
-        $this->folder = 'financiero/'; // Especifica la carpeta donde está el modelo
-        $this->loadModel('opciones'); // Cargar el modelo correcto
+        $this->folder = 'financiero/opciones'; // Especifica la carpeta donde está el modelo
+        $this->loadModel('obligaciones'); // Cargar el modelo correcto
     }
 
     function Cargar_Tipos_Obligaciones()
     {
         $result = $this->model->Cargar_Tipos_Obligaciones();
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener tipos de obligaciones',
+                "respuesta" => $result
+            ], 200);
+        }
+    }
+    
+    function Cargar_ACC_CuentasGastos()
+    {
+        $result = $this->model->Cargar_ACC_CuentasGastos();
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener tipos de obligaciones',
+                "respuesta" => $result
+            ], 200);
+        }
+    }
+    
+    function Cargar_ACC_CuentasPasivos_Provision()
+    {
+        $result = $this->model->Cargar_ACC_CuentasPasivos_Provision();
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
         } else {
