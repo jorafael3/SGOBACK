@@ -19,8 +19,7 @@ class EmpleadosModel extends Model
         try {
 
 
-            $sql = "
-               select e.Código as Cedula , e.Nombre , e.Dirección , e.Teléfono3
+            $sql = "SELECT e.Código as Cedula , e.Nombre , e.Dirección , e.Teléfono3
                 , e.FechaNac , j.Nombre as Jefe, e.email , d.Nombre , e.EstadoCivil ,
                 CASE WHEN e.PDecimos = 1 THEN 'SI' ELSE 'NO' END AS PDecimos,
                 CASE WHEN e.ProvisionaFR = 1 THEN 'SI' ELSE 'NO' END AS PFondos
@@ -227,4 +226,308 @@ class EmpleadosModel extends Model
         }
     }
 
+
+
+
+    function ActualizarDatosPersonales($data = [])
+    {
+        try {
+            // Desactivar transacciones implícitas
+            $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
+
+            $sql = "UPDATE EMP_EMPLEADOS 
+                    SET Dirección = :direccion, 
+                        EstadoCivil = :estadoCivil, 
+                        Teléfono3 = :telefono, 
+                        email = :email,
+                        FechaNac = :fechaNac
+                    WHERE ID = :empleadoId";
+
+            $params = [
+
+                ':empleadoId' => $data['empleadoId'] ?? null,
+                ':direccion' => $data['Dirección'] ?? null,
+                ':estadoCivil' => $data['EstadoCivil'] ?? null,
+                ':telefono' => $data['Teléfono3'] ?? null,
+                ':email' => $data['email'] ?? null,
+                ':fechaNac' => $data['FechaNac'] ?? null
+            ];
+
+            // IMPORTANTE: Usar execute() para que se guarden los cambios
+            $this->db->execute($sql, $params);
+
+            return [
+                'success' => true,
+                'message' => 'Datos actualizados correctamente PERSONALES'
+            ];
+
+        } catch (Exception $e) {
+            $this->logError("Error en ActualizarDatosPersonales: " . $e->getMessage());
+            error_log("Exception in ActualizarDatosPersonales: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Error al actualizar: ' . $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function ActualizarCargasEmpleado($data = [])
+    {
+        try {
+
+            // SQL corregido (cédula con corchetes)
+            $sql = "INSERT INTO EMP_EMPLEADOS_CARGAS 
+        (
+            EmpleadoID,
+            Edad,
+            Sexo,
+            Nombres,
+            SucursalID,
+            PcID,
+            CreadoPor,
+            CreadoDate,
+            FechaNacimiento,
+            [cédula],
+            TipoCarga,
+            Carga,
+            Ocupación
+        )
+        VALUES
+        (
+            :empleadoId,
+            :Edad,
+            :Sexo,
+            :Nombres,
+            '00',
+            'SGO',
+            :Creado_Por,
+            GETDATE(),
+            :FechaNacimiento,
+            :cedula,
+            :TipoCarga,
+            1,
+            ''
+        )";
+
+            // Parámetros
+            $params = [
+                ':empleadoId' => $data['empleadoId'] ?? null,
+                ':Edad' => $data['Edad'] ?? null,
+                ':Sexo' => $data['Sexo'] ?? null,
+                ':Nombres' => $data['Nombres'] ?? null,
+                ':FechaNacimiento' => $data['FechaNacimiento'] ?? null,
+                ':cedula' => $data['cédula'] ?? null, // parámetro SIN tilde
+                ':TipoCarga' => $data['TipoCarga'] ?? null,
+                ':Creado_Por' => $data['Creado_Por'] ?? 'SISTEMA',
+            ];
+
+            // Ejecutar
+            $rows = $this->db->execute($sql, $params);
+
+            // Validar si sí insertó
+            if ($rows <= 0) {
+                throw new Exception("El INSERT no insertó ninguna fila. Verifique los datos enviados.");
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Carga familiar guardada correctamente'
+            ];
+
+        } catch (Exception $e) {
+
+            $this->logError("Error en ActualizarCargasEmpleado: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'debug' => $data
+            ];
+        }
+    }
+
+
+
+
+
+    function ActualizarEstudios($data = [])
+    {
+        try {
+
+            // SQL corregido (cédula con corchetes)
+            $sql = "INSERT INTO SGO_EMP_EMPLEADOS_ESTUDIOS 
+        (
+
+            EmpleadoID,
+            Titulo,
+            Institucion,
+            anio
+           
+        )
+        VALUES
+        (
+            :empleadoId,
+            :titulo,
+            :institucion,
+            :anio
+
+        )";
+
+            // Parámetros
+            $params = [
+
+                ':empleadoId' => $data['empleadoId'] ?? null,
+                ':titulo' => $data['titulo'] ?? null,
+                ':institucion' => $data['institucion'] ?? null,
+                ':anio' => $data['anio'] ?? null,
+
+            ];
+
+            // Ejecutar
+            $rows = $this->db->execute($sql, $params);
+
+            // Validar si sí insertó
+            if ($rows <= 0) {
+                throw new Exception("El INSERT no insertó ninguna fila. Verifique los datos enviados.");
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Estudios guardados correctamente'
+            ];
+
+        } catch (Exception $e) {
+
+            $this->logError("Error en ActualizarEstudios: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'debug' => $data
+            ];
+        }
+    }
+
+
+
+
+    function GetCargasEstudios($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT * from SGO_EMP_EMPLEADOS_ESTUDIOS
+				where EmpleadoID = :empleadoId
+                ";
+
+            $params = [
+
+                ':empleadoId' => $data['empleadoId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en GetCargasEstudios: " . $e->getMessage());
+            error_log("Exception in GetCargasEstudios: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+
+    function ActualizarEnfermedades($data = [])
+    {
+        try {
+
+            $sql = "INSERT INTO SGO_EMP_DATOS_MEDICOS_EMPLEADOS
+        (
+            EmpleadoID,
+            alergias,
+            contactoEmergenciaNombre,
+            contactoEmergenciaRelacion,
+            contactoEmergenciaTelefono,
+            enfermedades
+        )
+        VALUES
+        (
+            :empleadoId,
+            :alergias,
+            :contactoEmergenciaNombre,
+            :contactoEmergenciaRelacion,
+            :contactoEmergenciaTelefono,
+            :enfermedades
+        )";
+
+            $params = [
+                ':empleadoId' => $data['empleadoId'] ?? null,
+                ':alergias' => $data['alergias'] ?? null,
+                ':contactoEmergenciaNombre' => $data['contactoEmergenciaNombre'] ?? null,
+                ':contactoEmergenciaRelacion' => $data['contactoEmergenciaRelacion'] ?? null,
+                ':contactoEmergenciaTelefono' => $data['contactoEmergenciaTelefono'] ?? null,
+                ':enfermedades' => $data['enfermedades'] ?? null,
+            ];
+
+            $rows = $this->db->execute($sql, $params);
+
+            if ($rows <= 0) {
+                throw new Exception("El INSERT no insertó ninguna fila.");
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Datos médicos guardados correctamente'
+            ];
+
+        } catch (Exception $e) {
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'debug' => $data
+            ];
+        }
+    }
+
+
+
+    function Getenfermedades($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT * from SGO_EMP_DATOS_MEDICOS_EMPLEADOS
+				where EmpleadoID = :empleadoId
+                ";
+
+            $params = [
+
+                ':empleadoId' => $data['empleadoId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en GetCargasEstudios: " . $e->getMessage());
+            error_log("Exception in GetCargasEstudios: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 }
