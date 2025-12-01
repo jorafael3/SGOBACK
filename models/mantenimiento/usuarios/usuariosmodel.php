@@ -70,7 +70,7 @@ class UsuariosModel extends Model
             $sql = "SELECT
                     departamento_id,
                     departamento_nombre
-                from SERIESUSR_DEPARTAMENTOS";
+                from CARTIMEX..SERIESUSR_DEPARTAMENTOS";
             $params = [];
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -139,7 +139,7 @@ class UsuariosModel extends Model
     function getMenuUsuarioAsignacion($usrid, $empresa)
     {
         try {
-            $sql = "SGO_MENU_USUARIOS_ASIGNACION '$empresa','$usrid'";
+            $sql = "CARTIMEX..SGO_MENU_USUARIOS_ASIGNACION '$empresa','$usrid'";
             $params = [];
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -152,7 +152,8 @@ class UsuariosModel extends Model
     function ActualizarUsuario($data)
     {
         try {
-            $sql = "UPDATE SERIESUSR SET 
+            if ($data["sessionData"]["empresa"] == "CARTIMEX") {
+                $sql = "UPDATE CARTIMEX..SERIESUSR SET 
                 nombre = :nombre,
                 clave = :clave,
                 Departamento = :Departamento,
@@ -162,17 +163,42 @@ class UsuariosModel extends Model
                 departamento_id = :departamento_id,
                 is_admin = :is_admin
                 WHERE usrid = :usrid";
-            $params = [
-                ':nombre' => $data['nombre'],
-                ':clave' => $data['clave'],
-                ':Departamento' => $data['Departamento'],
-                ':EmpleadoID' => $data['EmpleadoID'],
-                ':email_sgo' => $data['email'],
-                ':isgerencia' => $data['isgerencia'] == true ? 1 : 0,
-                ':departamento_id' => $data['departamento_id'],
-                ':is_admin' => $data['is_admin'] == true ? 1 : 0,
-                ':usrid' => $data['usrid']
-            ];
+
+                $params = [
+                    ':nombre' => $data['nombre'],
+                    ':clave' => $data['clave'],
+                    ':Departamento' => $data['Departamento'],
+                    ':EmpleadoID' => $data['EmpleadoID'],
+                    ':email_sgo' => $data['email'],
+                    ':isgerencia' => $data['isgerencia'] == true ? 1 : 0,
+                    ':departamento_id' => $data['departamento_id'],
+                    ':is_admin' => $data['is_admin'] == true ? 1 : 0,
+                    ':usrid' => $data['usrid']
+                ];
+            } else {
+                $sql = "UPDATE COMPUTRONSA..SERIESUSR SET 
+                nombre = :nombre,
+                clave = :clave,
+                Departamento = :Departamento,
+                EmpleadoID = :EmpleadoID,
+                email_sgo = :email_sgo,
+                isgerencia = :isgerencia,
+                is_admin = :is_admin
+                WHERE usrid = :usrid";
+
+                $params = [
+                    ':nombre' => $data['nombre'],
+                    ':clave' => $data['clave'],
+                    ':Departamento' => $data['Departamento'],
+                    ':EmpleadoID' => $data['EmpleadoID'],
+                    ':email_sgo' => $data['email'],
+                    ':isgerencia' => $data['isgerencia'] == true ? 1 : 0,
+                    ':is_admin' => $data['is_admin'] == true ? 1 : 0,
+                    ':usrid' => $data['usrid']
+                ];
+            }
+
+
             $stmt = $this->db->execute($sql, $params);
             return $stmt;
         } catch (Exception $e) {

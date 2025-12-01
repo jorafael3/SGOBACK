@@ -17,8 +17,7 @@ class Usuarios extends Controller
     function GetUsuarios()
     {
 
-        echo  json_encode("HOLAAA");
-        exit;
+    
 
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {

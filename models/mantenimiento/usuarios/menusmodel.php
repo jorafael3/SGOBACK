@@ -15,7 +15,7 @@ class MenusModel extends Model
         try {
             $sql = "SELECT 
                 *
-            FROM SGO_MENU_SISTEMA
+            FROM CARTIMEX..SGO_MENU_SISTEMA
             ORDER BY menuid ASC";
 
             $params = [];
@@ -32,7 +32,7 @@ class MenusModel extends Model
         try {
 
             $sql = "DECLARE @Id INT;
-                EXEC SGO_MENU_INSERTAR_NUEVO
+                EXEC CARTIMEX..SGO_MENU_INSERTAR_NUEVO
                     @Empresa = :empresa,
                     @Titulo = :titulo,
                     @Type = :type,
@@ -59,7 +59,7 @@ class MenusModel extends Model
 
             if ($data['PadreId'] != null || $data['PadreId'] != "") {
                 $sql .= "DECLARE @Padre INT;
-                    EXEC SGO_MENU_INSERTAR_NUEVO
+                    EXEC CARTIMEX..SGO_MENU_INSERTAR_NUEVO
                         @Empresa = :empresa,
                         @Titulo = :titulo,
                         @Type = :type,
@@ -90,7 +90,7 @@ class MenusModel extends Model
         try {
 
             $sql = "DECLARE @Id INT;
-                EXEC SGO_MENU_INSERTAR_NUEVO
+                EXEC CARTIMEX..SGO_MENU_INSERTAR_NUEVO
                     @Empresa = :empresa,
                     @Titulo = :titulo,
                     @Type = :type,
