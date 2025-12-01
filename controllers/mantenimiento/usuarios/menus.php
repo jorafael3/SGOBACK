@@ -14,8 +14,7 @@ class Menus extends Controller
 
     function GetMenus()
     {
-         echo  json_encode("HOLAAA");
-        exit;
+      
 
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {
