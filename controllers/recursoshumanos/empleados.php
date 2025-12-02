@@ -414,25 +414,14 @@ class Empleados extends Controller
         $result = $this->model->generarPDF($rolId);
 
         if ($result['success']) {
-            // CORRECCIÓN: Usar SGOBACK en lugar de SGOBACK
-            // También asegurar que no tenga paths duplicados
-            $baseUrl = 'http://localhost/SGOBACK/';
+            // Devolver PDF directamente al navegador
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="ROL_' . $result['rolId'] . '.pdf"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
 
-            // O si prefieres dinámico pero con SGOBACK fijo:
-            // $baseUrl = 'http://localhost/SGOBACK/';
-
-            // Obtener solo el nombre del archivo del resultado
-            $archivo = basename($result['archivo']);
-
-            // Construir URL correcta
-            $fileUrl = rtrim($baseUrl, '/') . '/' . $archivo;
-
-            $this->jsonResponse([
-                'success' => true,
-                'message' => 'PDF generado correctamente',
-                'url' => $fileUrl,
-                'file' => $archivo
-            ]);
+            echo $result['pdfData'];
+            exit; // Importante: detener la ejecución para no agregar contenido adicional
         } else {
             $this->jsonResponse([
                 'success' => false,
