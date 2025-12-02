@@ -249,36 +249,75 @@ class obligacionesbancarias extends Controller
     function guardar_modelo_amortizacion()
     {
 
-        // $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
-        // if (!$jwtData) {
-        //     return; // La respuesta de error ya fue enviada automáticamente
-        // }
+        $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
         $params = $this->getJsonInput();
 
-        $this->model->db->beginTransaction();
+        try {
+            $this->model->db->beginTransaction();
 
-        $result = $this->model->Guardar_Modelo_Amortizacion($params);
-        // echo json_encode($result);
-        // exit;
-        if ($result['success'] === false || count($result['detallet']) > 0 || count($result['detalletAcr'][0]) > 0) {
-            // $this->model->db->rollBack();
+            $cab = $this->model->Guardar_Modelo_Amortizacion($params);
+
+            if ($cab['success'] === false) {
+                $this->model->db->rollBack();
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'Error al guardar el modelo de amortización',
+                    'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                    "respuesta" => $cab
+                ], 200);
+                return;
+            }
+
+            $DETALLE = isset($params['datos']) ? $params['datos'] : [];
+            $DETERRO = [];
+            $DETERROACR = [];
+
+            for ($i = 0; $i < count($DETALLE); $i++) {
+                $ACRID = "";
+                if ($i > 0) {
+                    $DETALLE_ACR = $this->model->Guardar_Acreedores_Amortizacion($DETALLE[$i], $cab['insertId'], $params);
+                    if ($DETALLE_ACR['success'] === false) {
+                        $DETERROACR[] = $DETALLE_ACR;
+                    }
+                    $ACRID = $DETALLE_ACR["data"][0]['ACRID'];
+                }
+
+                $DETALLE_DT = $this->model->Guardar_Detalle_Amortizacion($DETALLE[$i], $cab['insertId'], $ACRID);
+                if ($DETALLE_DT['success'] === false) {
+                    $DETERRO[] = $DETALLE_DT;
+                }
+            }
+
+            if (count($DETERRO) === 0) {
+                // Todo ok, hacer commit
+                $this->model->db->commit();
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Modelo de amortización guardado correctamente',
+                    'data' => $cab,
+                    'acr' => $DETERROACR
+                ], 200);
+            } else {
+                // Hubo errores en los detalles, hacer rollback
+                $this->model->db->rollBack();
+                $this->jsonResponse([
+                    'success' => false,
+                    'error' => 'Error al guardar los detalles de amortización',
+                    'errors' => $DETERRO,
+                    'errors_acr' => $DETERROACR,
+                    "respuesta" => $cab
+                ], 500);
+            }
+        } catch (Exception $e) {
+            $this->model->db->rollBack();
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al guardar el modelo de amortización',
-                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
-                "respuesta" => $result
-            ], 200);
-        }
-
-        if ($result && $result['success']) {
-            // $this->model->db->commit();
-            $this->jsonResponse($result, 200);
-        } else {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Error al guardar el modelo de amortización',
-                // 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
-                "respuesta" => $result
+                'error' => 'Exception: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ], 500);
         }
     }
@@ -287,17 +326,13 @@ class obligacionesbancarias extends Controller
      */
     function cargar_amortizaciones()
     {
-
         $result = $this->model->Cargar_Amortizaciones();
-        echo json_encode($result);
-        exit;
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener transporte guías pickup',
-                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                'error' => 'Error al obtener amortizaciones',
                 "respuesta" => $result
             ], 200);
         }
@@ -317,10 +352,6 @@ class obligacionesbancarias extends Controller
                 $this->jsonResponse($CAB, 200);
                 return;
             }
-
-
-
-
 
             $DET = $this->model->Guardar_reajuste_detalle($param);
 

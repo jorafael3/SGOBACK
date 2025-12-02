@@ -141,11 +141,11 @@ class ObligacionesBancariasModel extends Model
             ':proveedorid' => $PROVEEDOR
         );
         $result = $this->db->execute($sql, $parames);
-        $detallet = $this->Guardar_Detalle_Amortizacion($DETALLE, $this->db->lastInsertId());
-        $detalletAcr = $this->Guardar_Acreedores_Amortizacion($DETALLE, $this->db->lastInsertId(), $params);
+        // $detallet = $this->Guardar_Detalle_Amortizacion($DETALLE, $this->db->lastInsertId());
+        // $detalletAcr = $this->Guardar_Acreedores_Amortizacion($DETALLE, $this->db->lastInsertId(), $params);
         $result['insertId'] = $this->db->lastInsertId();
-        $result['detallet'] = $detallet;
-        $result['detalletAcr'] = $detalletAcr;
+        // $result['detallet'] = $detallet;
+        // $result['detalletAcr'] = $detalletAcr;
         return $result;
     }
 
@@ -159,8 +159,8 @@ class ObligacionesBancariasModel extends Model
             $asientoID = '';
             $GUARD = [];
             $ERR = [];
-            for ($i = 0; $i < count($DETALLE); $i++) {
-                $sql = "SGO_AMORTIZACION_ACR_INSERT 
+
+            $sql = "SGO_AMORTIZACION_ACR_INSERT 
                 @acreedorid    = :acreedorid,
                 @documentoID   = :documentoID,
                 @asientoID     = :asientoID,
@@ -172,50 +172,77 @@ class ObligacionesBancariasModel extends Model
                 @CuentaID      = :CuentaID,
                 @saldo         = :saldo,
                 @creadoPor     = :creadoPor";
-                $params = [
-                    ":acreedorid" => $PROVEEDOR,
-                    ":documentoID" => $amortizacion_id,
-                    ":asientoID" => $asientoID,
-                    ":detalle" => $detalle,
-                    ":valor" => floatval($DETALLE[$i]['abonoCapital']),
-                    ":fecha" => $DETALLE[$i]['fechaPago'],
-                    ":vencimiento" => $DETALLE[$i]['fechaPago'],
-                    ":rubroid" => '',
-                    ":CuentaID" => '',
-                    ":saldo" => floatval($DETALLE[$i]['abonoCapital']),
-                    ":creadoPor" => isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema'
-                ];
-                $query = $this->db->execute($sql, $params);
-                if ($query['success'] === false) {
-                    $err = $query["error"];
-                    $ERR[] = 'Error al guardar la amortización: ' . $err;
-                } else {
-                    $GUARD[] = $query;
-                }
-            }
-            return [$ERR, $GUARD];
+            $params = [
+                ":acreedorid" => $PROVEEDOR,
+                ":documentoID" => $amortizacion_id,
+                ":asientoID" => $asientoID,
+                ":detalle" => $detalle,
+                ":valor" => floatval($DETALLE['abonoCapital']),
+                ":fecha" => $DETALLE['fechaPago'],
+                ":vencimiento" => $DETALLE['fechaPago'],
+                ":rubroid" => '',
+                ":CuentaID" => '',
+                ":saldo" => floatval($DETALLE['abonoCapital']),
+                ":creadoPor" => isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema'
+            ];
+            $query = $this->query($sql, $params);
+            return $query;
+
+            // for ($i = 0; $i < count($DETALLE); $i++) {
+            //     $sql = "SGO_AMORTIZACION_ACR_INSERT 
+            //     @acreedorid    = :acreedorid,
+            //     @documentoID   = :documentoID,
+            //     @asientoID     = :asientoID,
+            //     @detalle       = :detalle,
+            //     @valor         = :valor,
+            //     @fecha         = :fecha,
+            //     @vencimiento   = :vencimiento,
+            //     @rubroid       = :rubroid,
+            //     @CuentaID      = :CuentaID,
+            //     @saldo         = :saldo,
+            //     @creadoPor     = :creadoPor";
+            //     $params = [
+            //         ":acreedorid" => $PROVEEDOR,
+            //         ":documentoID" => $amortizacion_id,
+            //         ":asientoID" => $asientoID,
+            //         ":detalle" => $detalle,
+            //         ":valor" => floatval($DETALLE[$i]['abonoCapital']),
+            //         ":fecha" => $DETALLE[$i]['fechaPago'],
+            //         ":vencimiento" => $DETALLE[$i]['fechaPago'],
+            //         ":rubroid" => '',
+            //         ":CuentaID" => '',
+            //         ":saldo" => floatval($DETALLE[$i]['abonoCapital']),
+            //         ":creadoPor" => isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema'
+            //     ];
+            //     $query = $this->db->execute($sql, $params);
+            //     if ($query['success'] === false) {
+            //         $err = $query["error"];
+            //         $ERR[] = 'Error al guardar la amortización: ' . $err;
+            //     } else {
+            //         $GUARD[] = $query;
+            //     }
+            // }
+            // return [$ERR, $GUARD];
         } catch (Exception $e) {
             return $e->getMessage();
         }
     }
 
-    function Guardar_Detalle_Amortizacion($DETALLE, $AMORTIZACION)
+    function Guardar_Detalle_Amortizacion($DETALLE, $AMORTIZACION,$ACR_ID)
     {
 
         try {
 
             $ERR = [];
 
-            for ($i = 0; $i < count($DETALLE); $i++) {
-                $n_cuota = $DETALLE[$i]['cuota'];
-                $fecha_pago = $DETALLE[$i]['fechaPago'];
-                $abono_capital = $DETALLE[$i]['abonoCapital'];
-                $interes = $DETALLE[$i]['interes'];
-                $cuota = $DETALLE[$i]['pagoTotal'];
-                $saldo = $DETALLE[$i]['saldo'];
-                $otros = $DETALLE[$i]['otros'];
-
-                $sql = "INSERT INTO SGO_AMORTIZACION_DT
+            $n_cuota = $DETALLE['cuota'];
+            $fecha_pago = $DETALLE['fechaPago'];
+            $abono_capital = $DETALLE['abonoCapital'];
+            $interes = $DETALLE['interes'];
+            $cuota = $DETALLE['pagoTotal'];
+            $saldo = $DETALLE['saldo'];
+            $otros = $DETALLE['otros'];
+            $sql = "INSERT INTO SGO_AMORTIZACION_DT
                     (
                         cabecera_id,
                         n_cuota,
@@ -224,7 +251,8 @@ class ObligacionesBancariasModel extends Model
                         interes,
                         cuota,
                         saldo,
-                        otros
+                        otros,
+                        ACR_ID
                     )VALUES
                     (
                         :cabecera_id,
@@ -234,33 +262,32 @@ class ObligacionesBancariasModel extends Model
                         :interes,
                         :cuota,
                         :saldo,
-                        :otros
+                        :otros,
+                        :ACR_ID
                     )";
 
-                $params = [
-                    ':cabecera_id' => $AMORTIZACION,
-                    ':n_cuota' => $n_cuota,
-                    ':fecha_pago' => $fecha_pago,
-                    ':abono_capital' => $abono_capital,
-                    ':interes' => $interes,
-                    ':cuota' => $cuota,
-                    ':saldo' => $saldo,
-                    ':otros' => $otros
-                ];
-
-                if ($this->db->execute($sql, $params)) {
-                } else {
-                    $err = $this->db->errorInfo();
-                    $ERR[] = 'Error al guardar el detalle: ' . $err[2];
-                }
-            }
-            return $ERR;
+            $params = [
+                ':cabecera_id' => $AMORTIZACION,
+                ':n_cuota' => $n_cuota,
+                ':fecha_pago' => $fecha_pago,
+                ':abono_capital' => $abono_capital,
+                ':interes' => $interes,
+                ':cuota' => $cuota,
+                ':saldo' => $saldo,
+                ':otros' => $otros,
+                ':ACR_ID' => $ACR_ID
+            ];
+            $query = $this->db->execute($sql, $params);
+            return $query;
         } catch (Exception $e) {
             $ERR[] = 'Excepción al guardar el detalle: ' . $e->getMessage();
         }
 
         return $ERR;
     }
+
+
+
 
     function Cargar_Amortizaciones()
     {
@@ -418,6 +445,7 @@ class ObligacionesBancariasModel extends Model
             cuota,
             saldo,
             otros,
+            ACR_ID,
             isnull(fila_reajuste,0)as fila_reajuste
             from SGO_AMORTIZACION_DT 
             WHERE cabecera_id = :cabecera_id 
@@ -445,6 +473,7 @@ class ObligacionesBancariasModel extends Model
             $tasa_mensual = floatval($DATOS_REAJUSTE['tasa_mensual']);
             $cuota_fija = floatval($DATOS_REAJUSTE['cuota_fija']);
             $creado_por = isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema';
+            
 
             $sql = "UPDATE SGO_AMORTIZACION_DT SET dt_activo = 0 WHERE cabecera_id = :cabecera_id";
             $params = [
@@ -510,6 +539,8 @@ class ObligacionesBancariasModel extends Model
             $otros = $DATOS_REAJUSTE["amortizacion_detalle"][$i]['otros'];
             $fila_reajuste = $DATOS_REAJUSTE["amortizacion_detalle"][$i]['fila_reajuste'];
 
+            $ACR_ID = isset($DATOS_REAJUSTE["amortizacion_detalle"][$i]['ACR_ID']) ? $DATOS_REAJUSTE["amortizacion_detalle"][$i]['ACR_ID'] : null;
+
             $sql = "INSERT INTO SGO_AMORTIZACION_DT
                             (
                                 cabecera_id,
@@ -520,7 +551,8 @@ class ObligacionesBancariasModel extends Model
                                 cuota,
                                 saldo,
                                 otros,
-                                fila_reajuste
+                                fila_reajuste,
+                                ACR_ID
                             )VALUES
                             (
                                 :cabecera_id,
@@ -531,7 +563,8 @@ class ObligacionesBancariasModel extends Model
                                 :cuota,
                                 :saldo,
                                 :otros,
-                                :fila_reajuste
+                                :fila_reajuste,
+                                :ACR_ID
                             )";
             $params = [
                 ':cabecera_id' => $amortizacion_id,
@@ -542,7 +575,8 @@ class ObligacionesBancariasModel extends Model
                 ':cuota' => $cuota,
                 ':saldo' => $saldo,
                 ':otros' => $otros,
-                ':fila_reajuste' => $fila_reajuste
+                ':fila_reajuste' => $fila_reajuste,
+                ':ACR_ID' => $ACR_ID
             ];
             $result = $this->db->execute($sql, $params);
             if ($result) {
