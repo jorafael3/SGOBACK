@@ -10,9 +10,12 @@ class Menus extends Controller
         $this->folder = 'mantenimiento/usuarios/'; // Especifica la carpeta donde está el modelo
         $this->loadModel('menus'); // Cargar el modelo correcto
     }
+    
 
     function GetMenus()
     {
+      
+
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente

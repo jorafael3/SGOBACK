@@ -2,6 +2,7 @@
 require_once __DIR__ . '../../../../libs/JwtHelper.php';
 // require_once __DIR__ . '/../models/empresamodel.php';
 
+
 class Usuarios extends Controller
 {
     public function __construct()
@@ -11,8 +12,13 @@ class Usuarios extends Controller
         $this->loadModel('usuarios'); // Cargar el modelo correcto
     }
 
+
+
     function GetUsuarios()
     {
+
+    
+
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
