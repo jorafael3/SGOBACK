@@ -5,6 +5,8 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+
+
 class EmpleadosModel extends Model
 {
     public function __construct($empresaCode = null)
@@ -530,4 +532,306 @@ class EmpleadosModel extends Model
             ];
         }
     }
+
+
+
+    function ConsultarRolesPago($data = [])
+    {
+        try {
+
+            // Recibimos fecha YYYYMMDD → ejemplo: 20250101
+            $fecha = $data['fecha'];
+
+            // Convertir a un objeto DateTime
+            $dt = DateTime::createFromFormat('Ymd', $fecha);
+
+            // Primer día del mes
+            $inicioMes = $dt->format('Y-m-01');
+
+            // Primer día del siguiente mes
+            $dtSiguiente = clone $dt;
+            $dtSiguiente->modify('first day of next month');
+            $finMes = $dtSiguiente->format('Y-m-d');
+
+            // Consulta SQL usando parámetros simples
+            $sql = "SELECT r.Fecha, ep.RolID, ep.EmpleadoID
+                FROM EMP_ROLES r
+                INNER JOIN EMP_ROLES_EMPLEADOS ep ON r.ID = ep.RolID
+                WHERE ep.EmpleadoID = :empleadoId
+                AND r.Fecha >= :inicio
+                AND r.Fecha < :fin";
+
+            $params = [
+                ':empleadoId' => $data['empleadoId'],
+                ':inicio' => $inicioMes,
+                ':fin' => $finMes
+            ];
+
+            return $this->query($sql, $params);
+
+        } catch (Exception $e) {
+            $this->logError("Error en ConsultarRolesPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function detalle($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT
+            rr.DocumentoID,
+            rr.Tipo as Clase,
+            rub.Nombre as Detalle,
+            CASE WHEN rr.Tipo = 'Ingreso' THEN rr.Calculado ELSE 0 END as Ingreso,
+            CASE WHEN rr.Tipo = 'Egreso' THEN rr.Valor ELSE 0 END as Egreso,
+            CASE WHEN rr.DocumentoID = '' THEN rub.Nombre ELSE de.Detalle END as Detalle,
+            ISNULL(de.Tipo,'') as Tipo ,
+            de.DocumentoID as Referencia
+            FROM EMP_ROLES_RUBROS rr
+            JOIN EMP_RUBROS rub ON rr.RubroID = rub.ID
+            LEFT JOIN EMP_EMPLEADOS_DEUDAS de ON de.ID = rr.DocumentoID
+            WHERE rr.RolID = :rolId AND rr.Tipo <> 'Provision'
+            ORDER BY LEN(Detalle) ASC, Ingreso DESC, Egreso ASC";
+
+            $params = [
+
+                ':rolId' => $data['rolId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en DescargarRolPago: " . $e->getMessage());
+            error_log("Exception in DescargarRolPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function cabecera($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT 
+                Detalle as Concepto , 
+                ID, 
+                Fecha , 
+                Ingresos as Ingreso_Total, 
+                Egresos as Egreso_Total, 
+                Total as Valor_Neto 
+                from EMP_ROLES 
+                where ID = :rolId";
+
+            $params = [
+
+                ':rolId' => $data['rolId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en DescargarRolPago: " . $e->getMessage());
+            error_log("Exception in DescargarRolPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function GenerarPDFRolPago($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT
+            rr.DocumentoID,
+            rr.Tipo as Clase,
+            rub.Nombre as Detalle,
+            CASE WHEN rr.Tipo = 'Ingreso' THEN rr.Calculado ELSE 0 END as Ingreso,
+            CASE WHEN rr.Tipo = 'Egreso' THEN rr.Valor ELSE 0 END as Egreso,
+            CASE WHEN rr.DocumentoID = '' THEN rub.Nombre ELSE de.Detalle END as Detalle,
+            ISNULL(de.Tipo,'') as Tipo ,
+            de.DocumentoID as Referencia
+            FROM EMP_ROLES_RUBROS rr
+            JOIN EMP_RUBROS rub ON rr.RubroID = rub.ID
+            LEFT JOIN EMP_EMPLEADOS_DEUDAS de ON de.ID = rr.DocumentoID
+            WHERE rr.RolID = :rolId AND rr.Tipo <> 'Provision'
+            ORDER BY LEN(Detalle) ASC, Ingreso DESC, Egreso ASC";
+
+            $params = [
+
+                ':rolId' => $data['rolId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en DescargarRolPago: " . $e->getMessage());
+            error_log("Exception in DescargarRolPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function generarPDF($rolId)
+    {
+        try {
+            // require_once("fpdf/fpdf.php"); // Eliminado
+
+            // OBTENER DATOS
+            // Pasamos un array como espera el método
+            $cabeceraResult = $this->cabecera(['rolId' => $rolId]);
+            $detalleResult = $this->detalle(['rolId' => $rolId]);
+
+            // Verificar si obtuvimos datos
+            if (empty($cabeceraResult['data']) || empty($detalleResult['data'])) {
+                return ['success' => false, 'error' => 'No se encontraron datos para el Rol ID: ' . $rolId];
+            }
+
+            $row = $cabeceraResult['data'][0];
+            $cuerpo = $detalleResult['data'];
+
+            // DIRECTORIO DE SALIDA
+            $carpeta = "roles_generados";
+            if (!file_exists($carpeta)) {
+                mkdir($carpeta, 0777, true);
+            }
+
+            $pdf = new \FPDF();
+            $pdf->AddPage();
+            $pdf->SetFont('Arial', '', 10);
+
+            // LOGO
+            $pdf->Image('https://ww.nexxtsolutions.com/wp-content/uploads/2019/02/01-Cartimex-244x122.png', 7, 3, 40);
+
+            // TITULO DERECHA
+            $pdf->SetXY(120, 10);
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(77, 9, '  ROL DE PAGO NO: ' . $row['ID'], 0, 0, 'R');
+            $pdf->Ln();
+
+            // CABECERA
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(120, 6, "Concepto", 'L,T', 0, 'L');
+            $pdf->Cell(25, 6, "ID", 'T', 0, 'C');
+            $pdf->Cell(43, 6, "Fecha", 'T,R', 0, 'C');
+            $pdf->Ln();
+
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->Cell(120, 5, utf8_decode($row["Concepto"]), 'L,B', 0, 'L');
+            $pdf->Cell(25, 5, $row["ID"], 'B', 0, 'C');
+            $pdf->Cell(43, 5, date('d/m/Y', strtotime($row["Fecha"])), 'B,R', 0, 'C');
+            $pdf->Ln(10);
+
+            // ENCABEZADO DETALLE
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(19, 5, "Clase", 'B,T,L', 0, 'C');
+            $pdf->Cell(19, 5, "Tipo", 'B,T', 0, 'C');
+            $pdf->Cell(19, 5, "Ref", 'B,T', 0, 'C');
+            $pdf->Cell(90, 5, "Detalle", 'B,T', 0, 'C');
+            $pdf->Cell(20, 5, "Ingreso", 'B,T', 0, 'R');
+            $pdf->Cell(21, 5, "Egreso", 'B,T,R', 0, 'R');
+            $pdf->Ln(7);
+
+            // CUERPO
+            $pdf->SetFont('Arial', '', 8);
+
+            foreach ($cuerpo as $item) {
+                $detalleTexto = utf8_decode($item["Detalle"]);
+                $ingreso = "$" . number_format($item["Ingreso"], 2);
+                $egreso = "$" . number_format($item["Egreso"], 2);
+
+                $pdf->Cell(19, 5, $item["Clase"], 1, 0, 'C');
+                $pdf->Cell(19, 5, $item["Tipo"], 1, 0, 'C');
+                $pdf->Cell(19, 5, $item["Referencia"], 1, 0, 'L');
+
+                // DETALLE LARGO
+                if (strlen($detalleTexto) > 50) {
+                    $lineas = explode("\n", wordwrap($detalleTexto, 50, "\n"));
+                    $pdf->Cell(90, 5, $lineas[0], 1, 0, 'L');
+                    $pdf->Cell(20, 5, $ingreso, 1, 0, 'R');
+                    $pdf->Cell(21, 5, $egreso, 1, 0, 'R');
+                    $pdf->Ln();
+
+                    for ($j = 1; $j < count($lineas); $j++) {
+                        $pdf->Cell(57, 4, "", 0, 0);
+                        $pdf->Cell(90, 4, $lineas[$j], 1, 0, 'L');
+                        $pdf->Ln();
+                    }
+                } else {
+                    $pdf->Cell(90, 5, $detalleTexto, 1, 0, 'L');
+                    $pdf->Cell(20, 5, $ingreso, 1, 0, 'R');
+                    $pdf->Cell(21, 5, $egreso, 1, 0, 'R');
+                    $pdf->Ln();
+                }
+            }
+
+            // TOTALES
+            $pdf->Ln(5);
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(150, 7, "", 'T,R', 0, 'C');
+            $pdf->Cell(20, 7, '$' . number_format($row["Ingreso_Total"], 2), 1, 0, 'R');
+            $pdf->Cell(20, 7, '$' . number_format($row["Egreso_Total"], 2), 1, 0, 'R');
+            $pdf->Ln(15);
+
+            // VALOR NETO
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(0, 8, "Valor Neto a Recibir:     $" . number_format($row["Valor_Neto"], 2), 0, 0, 'C');
+            $pdf->Ln(20);
+
+            // FIRMA
+            $pdf->SetFont('Times', 'BI', 12);
+            $pdf->Cell(0, 10, 'Documento Generado Electronicamente', 0, 1, 'L');
+
+            // NOMBRE ARCHIVO
+            date_default_timezone_set('America/Guayaquil');
+            $dateString = date('Ymd_His');
+
+            $filename = $carpeta . $row["ID"] . "_" . $dateString . ".pdf";
+
+            // GENERAR PDF
+            $pdf->Output($filename, 'F');
+
+            return ['success' => true, 'archivo' => $filename];
+
+        } catch (Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+
+
+   
+
 }

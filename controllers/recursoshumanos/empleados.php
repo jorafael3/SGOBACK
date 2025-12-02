@@ -371,4 +371,75 @@ class Empleados extends Controller
             ], 200);
         }
     }
+
+
+    function ConsultarRolesPago()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->ConsultarRolesPago($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener roles de pago',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+
+    function DescargarRolPago()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
+
+        $data = $this->getJsonInput();
+        $rolId = $data['rolId'] ?? null;
+
+        if (!$rolId) {
+            return $this->jsonResponse(['error' => 'rolId requerido'], 400);
+        }
+
+        // Generar PDF
+        $result = $this->model->generarPDF($rolId);
+
+        if ($result['success']) {
+            // CORRECCIÓN: Usar SGOBACK en lugar de SGOBACK
+            // También asegurar que no tenga paths duplicados
+            $baseUrl = 'http://localhost/SGOBACK/';
+
+            // O si prefieres dinámico pero con SGOBACK fijo:
+            // $baseUrl = 'http://localhost/SGOBACK/';
+
+            // Obtener solo el nombre del archivo del resultado
+            $archivo = basename($result['archivo']);
+
+            // Construir URL correcta
+            $fileUrl = rtrim($baseUrl, '/') . '/' . $archivo;
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'PDF generado correctamente',
+                'url' => $fileUrl,
+                'file' => $archivo
+            ]);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $result['error'] ?? 'Error desconocido al generar PDF'
+            ], 500);
+        }
+    }
+
+
 }
