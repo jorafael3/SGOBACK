@@ -445,6 +445,7 @@ class ObligacionesBancariasModel extends Model
             cuota,
             saldo,
             otros,
+            ACR_ID,
             isnull(fila_reajuste,0)as fila_reajuste
             from SGO_AMORTIZACION_DT 
             WHERE cabecera_id = :cabecera_id 
@@ -472,6 +473,7 @@ class ObligacionesBancariasModel extends Model
             $tasa_mensual = floatval($DATOS_REAJUSTE['tasa_mensual']);
             $cuota_fija = floatval($DATOS_REAJUSTE['cuota_fija']);
             $creado_por = isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema';
+            
 
             $sql = "UPDATE SGO_AMORTIZACION_DT SET dt_activo = 0 WHERE cabecera_id = :cabecera_id";
             $params = [
@@ -537,6 +539,8 @@ class ObligacionesBancariasModel extends Model
             $otros = $DATOS_REAJUSTE["amortizacion_detalle"][$i]['otros'];
             $fila_reajuste = $DATOS_REAJUSTE["amortizacion_detalle"][$i]['fila_reajuste'];
 
+            $ACR_ID = isset($DATOS_REAJUSTE["amortizacion_detalle"][$i]['ACR_ID']) ? $DATOS_REAJUSTE["amortizacion_detalle"][$i]['ACR_ID'] : null;
+
             $sql = "INSERT INTO SGO_AMORTIZACION_DT
                             (
                                 cabecera_id,
@@ -547,7 +551,8 @@ class ObligacionesBancariasModel extends Model
                                 cuota,
                                 saldo,
                                 otros,
-                                fila_reajuste
+                                fila_reajuste,
+                                ACR_ID
                             )VALUES
                             (
                                 :cabecera_id,
@@ -558,7 +563,8 @@ class ObligacionesBancariasModel extends Model
                                 :cuota,
                                 :saldo,
                                 :otros,
-                                :fila_reajuste
+                                :fila_reajuste,
+                                :ACR_ID
                             )";
             $params = [
                 ':cabecera_id' => $amortizacion_id,
@@ -569,7 +575,8 @@ class ObligacionesBancariasModel extends Model
                 ':cuota' => $cuota,
                 ':saldo' => $saldo,
                 ':otros' => $otros,
-                ':fila_reajuste' => $fila_reajuste
+                ':fila_reajuste' => $fila_reajuste,
+                ':ACR_ID' => $ACR_ID
             ];
             $result = $this->db->execute($sql, $params);
             if ($result) {
