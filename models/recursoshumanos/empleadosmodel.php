@@ -918,6 +918,75 @@ class EmpleadosModel extends Model
 
 
 
+
+
+    function ActualizarPassword($data = [])
+    {
+        try {
+            $empleadoId = $data['empleadoId'] ?? null;
+            $currentPassword = $data['currentPassword'] ?? null;
+            $newPassword = $data['newPassword'] ?? null;
+
+            if (!$empleadoId || !$currentPassword || !$newPassword) {
+                return [
+                    'success' => false,
+                    'error' => 'Faltan datos requeridos (ID, contraseña actual o nueva)'
+                ];
+            }
+
+            // 1. Verificar la contraseña actual
+            $sqlCheck = "SELECT clave FROM SERIESUSR WHERE EmpleadoID = :empleadoId";
+            $resultCheck = $this->query($sqlCheck, [':empleadoId' => $empleadoId]);
+
+            if (empty($resultCheck['data'])) {
+                return [
+                    'success' => false,
+                    'error' => 'Usuario no encontrado'
+                ];
+            }
+
+            $storedPassword = $resultCheck['data'][0]['clave'];
+
+            // Comparación (usando la misma lógica que LoginModel: strtolower)
+            if (strtolower($currentPassword) !== strtolower($storedPassword)) {
+                return [
+                    'success' => false,
+                    'error' => 'La contraseña actual es incorrecta'
+                ];
+            }
+
+            // 2. Actualizar la contraseña
+            $sql = "UPDATE SERIESUSR 
+                SET clave = :newPassword
+                WHERE EmpleadoID = :empleadoId";
+
+            $params = [
+                ':empleadoId' => $empleadoId,
+                ':newPassword' => $newPassword
+            ];
+
+            // Usar execute para UPDATE, no query
+            $rows = $this->db->execute($sql, $params);
+
+            // Si llega aquí es que no hubo excepción
+            return [
+                'success' => true,
+                'message' => 'Contraseña actualizada correctamente',
+                'rowsAffected' => $rows
+            ];
+
+
+        } catch (Exception $e) {
+            $this->logError("Error en ActualizarPassword: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
     // function generarPDF($rolId)
     // {
     //     try {

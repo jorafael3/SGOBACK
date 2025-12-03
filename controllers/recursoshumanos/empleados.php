@@ -431,4 +431,27 @@ class Empleados extends Controller
     }
 
 
+
+
+    function ActualizarPassword()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->ActualizarPassword($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $result['error'] ?? 'Error al actualizar la contraseña',
+                'details' => $result
+            ], 200);
+        }
+    }
+
 }
