@@ -647,7 +647,7 @@ class EmpleadosModel extends Model
                 INNER JOIN EMP_ROLES_EMPLEADOS ep ON r.ID = ep.RolID
                 WHERE ep.EmpleadoID = :empleadoId
                 AND r.Fecha >= :inicio
-                AND r.Fecha < :fin";
+                AND r.Fecha <= :fin";
 
             $params = [
                 ':empleadoId' => $data['empleadoId'],
