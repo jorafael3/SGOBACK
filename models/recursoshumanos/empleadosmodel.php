@@ -626,22 +626,19 @@ class EmpleadosModel extends Model
     function ConsultarRolesPago($data = [])
     {
         try {
-
-            // Recibimos fecha YYYYMMDD → ejemplo: 20250101
+            // Recibimos fecha YYYYMMDD → ejemplo: 20250601
             $fecha = $data['fecha'];
 
-            // Convertir a un objeto DateTime
+            // Convertimos a DateTime
             $dt = DateTime::createFromFormat('Ymd', $fecha);
 
-            // Primer día del mes
-            $inicioMes = $dt->format('Y-m-01');
+            // Primer día del mes (ya viene así, pero se normaliza)
+            $inicioMes = $dt->format('Ymd');
 
-            // Primer día del siguiente mes
-            $dtSiguiente = clone $dt;
-            $dtSiguiente->modify('first day of next month');
-            $finMes = $dtSiguiente->format('Y-m-d');
+            // Calcular último día del mes
+            $ultimoDiaMes = $dt->format('Ymt');  // <-- Ymt = AñoMesÚltimoDía
 
-            // Consulta SQL usando parámetros simples
+            // Consulta SQL con formato correcto
             $sql = "SELECT r.Fecha, ep.RolID, ep.EmpleadoID
                 FROM EMP_ROLES r
                 INNER JOIN EMP_ROLES_EMPLEADOS ep ON r.ID = ep.RolID
@@ -651,8 +648,8 @@ class EmpleadosModel extends Model
 
             $params = [
                 ':empleadoId' => $data['empleadoId'],
-                ':inicio' => $inicioMes,
-                ':fin' => $finMes
+                ':inicio' => $inicioMes,       // YYYYMM01
+                ':fin' => $ultimoDiaMes        // YYYYMMDD (último día del mes)
             ];
 
             return $this->query($sql, $params);
