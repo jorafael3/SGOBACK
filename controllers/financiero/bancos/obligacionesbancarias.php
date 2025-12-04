@@ -353,10 +353,6 @@ class obligacionesbancarias extends Controller
                 return;
             }
 
-
-
-
-
             $DET = $this->model->Guardar_reajuste_detalle($param);
 
             if ($DET && $DET['success'] && count($DET['errors']) === 0) {

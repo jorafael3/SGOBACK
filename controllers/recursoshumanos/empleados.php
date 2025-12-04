@@ -371,4 +371,87 @@ class Empleados extends Controller
             ], 200);
         }
     }
+
+
+    function ConsultarRolesPago()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->ConsultarRolesPago($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener roles de pago',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+
+    function DescargarRolPago()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
+
+        $data = $this->getJsonInput();
+        $rolId = $data['rolId'] ?? null;
+
+        if (!$rolId) {
+            return $this->jsonResponse(['error' => 'rolId requerido'], 400);
+        }
+
+        // Generar PDF
+        $result = $this->model->generarPDF($rolId);
+
+        if ($result['success']) {
+            // Devolver PDF directamente al navegador
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="ROL_' . $result['rolId'] . '.pdf"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $result['pdfData'];
+            exit; // Importante: detener la ejecución para no agregar contenido adicional
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $result['error'] ?? 'Error desconocido al generar PDF'
+            ], 500);
+        }
+    }
+
+
+
+
+    function ActualizarPassword()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->ActualizarPassword($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $result['error'] ?? 'Error al actualizar la contraseña',
+                'details' => $result
+            ], 200);
+        }
+    }
+
 }
