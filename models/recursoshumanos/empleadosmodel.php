@@ -272,139 +272,51 @@ class EmpleadosModel extends Model
 
 
 
-    // function ActualizarDatosPersonales($data = [])
-    // {
-    //     try {
-    //         // Desactivar transacciones implícitas
-    //         $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
-
-    //         $sql = "UPDATE EMP_EMPLEADOS 
-    //                 SET Dirección = :direccion, 
-    //                     EstadoCivil = :estadoCivil, 
-    //                     Teléfono3 = :telefono, 
-    //                     email = :email,
-    //                     FechaNac = :fechaNac
-    //                 WHERE ID = :empleadoId";
-
-    //         $params = [
-
-    //             ':empleadoId' => $data['empleadoId'] ?? null,
-    //             ':direccion' => $data['Dirección'] ?? null,
-    //             ':estadoCivil' => $data['EstadoCivil'] ?? null,
-    //             ':telefono' => $data['Teléfono3'] ?? null,
-    //             ':email' => $data['email'] ?? null,
-    //             ':fechaNac' => $data['FechaNac'] ?? null
-    //         ];
-
-    //         // IMPORTANTE: Usar execute() para que se guarden los cambios
-    //         $this->db->execute($sql, $params);
-
-    //         // Preparar campos modificados para el email
-    //         $camposModificados = [];
-    //         if (isset($data['Dirección']))
-    //             $camposModificados['Dirección'] = $data['Dirección'];
-    //         if (isset($data['EstadoCivil']))
-    //             $camposModificados['Estado Civil'] = $data['EstadoCivil'];
-    //         if (isset($data['Teléfono3']))
-    //             $camposModificados['Teléfono'] = $data['Teléfono3'];
-    //         if (isset($data['email']))
-    //             $camposModificados['Email'] = $data['email'];
-    //         if (isset($data['FechaNac']))
-    //             $camposModificados['Fecha de Nacimiento'] = $data['FechaNac'];
-
-    //         // Enviar alerta de cambio
-    //         $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
-    //         $this->enviarAlertaCambio(
-    //             $data['empleadoId'],
-    //             'Información Personal',
-    //             $usuarioModificador,
-    //             null,
-    //             $camposModificados
-    //         );
-
-    //         return [
-    //             'success' => true,
-    //             'message' => 'Datos actualizados correctamente PERSONALES'
-    //         ];
-
-    //     } catch (Exception $e) {
-    //         $this->logError("Error en ActualizarDatosPersonales: " . $e->getMessage());
-    //         error_log("Exception in ActualizarDatosPersonales: " . $e->getMessage());
-    //         return [
-    //             'success' => false,
-    //             'error' => 'Error al actualizar: ' . $e->getMessage()
-    //         ];
-    //     }
-    // }
-
-
-
-
     function ActualizarDatosPersonales($data = [])
     {
         try {
             // Desactivar transacciones implícitas
             $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
 
-            // Nuevo INSERT en SGO_EMPLEADOS_VALIDACIONES
-            $sql = "INSERT INTO SGO_EMPLEADOS_VALIDACIONES (
-                    EmpleadoID,
-                    Cedula,
-                    Direccion,
-                    EstadoCivil,
-                    FechaNac,
-                    Jefe,
-                    Nombre,
-                    PDecimos,
-                    PFondos,
-                    Telefono,
-                    Email,
-                    Estado
-                ) VALUES (
-                    :empleadoId,
-                    :cedula,
-                    :direccion,
-                    :estadoCivil,
-                    :fechaNac,
-                    :jefe,
-                    :nombre,
-                    :pdecimos,
-                    :pfondos,
-                    :telefono,
-                    :email,
-                    0
-                )";
+            $sql = "UPDATE EMP_EMPLEADOS 
+                    SET Dirección = :direccion, 
+                        EstadoCivil = :estadoCivil, 
+                        Teléfono3 = :telefono, 
+                        email = :email,
+                        FechaNac = :fechaNac
+                    WHERE ID = :empleadoId";
 
-            // Parametros del INSERT
             $params = [
+
                 ':empleadoId' => $data['empleadoId'] ?? null,
-                ':cedula' => $data['Cedula'] ?? null,
                 ':direccion' => $data['Dirección'] ?? null,
                 ':estadoCivil' => $data['EstadoCivil'] ?? null,
-                ':fechaNac' => $data['FechaNac'] ?? null,
-                ':jefe' => $data['Jefe'] ?? null,
-                ':nombre' => $data['Nombre'] ?? null,
-                ':pdecimos' => $data['PDecimos'] ?? null,
-                ':pfondos' => $data['PFondos'] ?? null,
                 ':telefono' => $data['Teléfono3'] ?? null,
-                ':email' => $data['email'] ?? null
+                ':email' => $data['email'] ?? null,
+                ':fechaNac' => $data['FechaNac'] ?? null
             ];
 
-            // Ejecutar el INSERT
+            // IMPORTANTE: Usar execute() para que se guarden los cambios
             $this->db->execute($sql, $params);
 
-            // Preparar campos modificados para enviar alerta
+            // Preparar campos modificados para el email
             $camposModificados = [];
-            foreach ($params as $campo => $valor) {
-                $nombreCampo = str_replace(":", "", $campo);
-                $camposModificados[$nombreCampo] = $valor;
-            }
+            if (isset($data['Dirección']))
+                $camposModificados['Dirección'] = $data['Dirección'];
+            if (isset($data['EstadoCivil']))
+                $camposModificados['Estado Civil'] = $data['EstadoCivil'];
+            if (isset($data['Teléfono3']))
+                $camposModificados['Teléfono'] = $data['Teléfono3'];
+            if (isset($data['email']))
+                $camposModificados['Email'] = $data['email'];
+            if (isset($data['FechaNac']))
+                $camposModificados['Fecha de Nacimiento'] = $data['FechaNac'];
 
-            // Enviar alerta (si aplica)
+            // Enviar alerta de cambio
             $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
             $this->enviarAlertaCambio(
                 $data['empleadoId'],
-                'Validación de Datos Personales',
+                'Información Personal',
                 $usuarioModificador,
                 null,
                 $camposModificados
@@ -412,17 +324,105 @@ class EmpleadosModel extends Model
 
             return [
                 'success' => true,
-                'message' => 'Datos guardados correctamente en validación PERSONAL'
+                'message' => 'Datos actualizados correctamente PERSONALES'
             ];
 
         } catch (Exception $e) {
             $this->logError("Error en ActualizarDatosPersonales: " . $e->getMessage());
+            error_log("Exception in ActualizarDatosPersonales: " . $e->getMessage());
             return [
                 'success' => false,
-                'error' => 'Error al insertar: ' . $e->getMessage()
+                'error' => 'Error al actualizar: ' . $e->getMessage()
             ];
         }
     }
+
+
+
+
+    // function ActualizarDatosPersonales($data = [])
+    // {
+    //     try {
+    //         // Desactivar transacciones implícitas
+    //         $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
+
+    //         // Nuevo INSERT en SGO_EMPLEADOS_VALIDACIONES
+    //         $sql = "INSERT INTO SGO_EMPLEADOS_VALIDACIONES (
+    //                 EmpleadoID,
+    //                 Cedula,
+    //                 Direccion,
+    //                 EstadoCivil,
+    //                 FechaNac,
+    //                 Jefe,
+    //                 Nombre,
+    //                 PDecimos,
+    //                 PFondos,
+    //                 Telefono,
+    //                 Email,
+    //                 Estado
+    //             ) VALUES (
+    //                 :empleadoId,
+    //                 :cedula,
+    //                 :direccion,
+    //                 :estadoCivil,
+    //                 :fechaNac,
+    //                 :jefe,
+    //                 :nombre,
+    //                 :pdecimos,
+    //                 :pfondos,
+    //                 :telefono,
+    //                 :email,
+    //                 0
+    //             )";
+
+    //         // Parametros del INSERT
+    //         $params = [
+    //             ':empleadoId' => $data['empleadoId'] ?? null,
+    //             ':cedula' => $data['Cedula'] ?? null,
+    //             ':direccion' => $data['Dirección'] ?? null,
+    //             ':estadoCivil' => $data['EstadoCivil'] ?? null,
+    //             ':fechaNac' => $data['FechaNac'] ?? null,
+    //             ':jefe' => $data['Jefe'] ?? null,
+    //             ':nombre' => $data['Nombre'] ?? null,
+    //             ':pdecimos' => $data['PDecimos'] ?? null,
+    //             ':pfondos' => $data['PFondos'] ?? null,
+    //             ':telefono' => $data['Teléfono3'] ?? null,
+    //             ':email' => $data['email'] ?? null
+    //         ];
+
+    //         // Ejecutar el INSERT
+    //         $this->db->execute($sql, $params);
+
+    //         // Preparar campos modificados para enviar alerta
+    //         $camposModificados = [];
+    //         foreach ($params as $campo => $valor) {
+    //             $nombreCampo = str_replace(":", "", $campo);
+    //             $camposModificados[$nombreCampo] = $valor;
+    //         }
+
+    //         // Enviar alerta (si aplica)
+    //         $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+    //         $this->enviarAlertaCambio(
+    //             $data['empleadoId'],
+    //             'Validación de Datos Personales',
+    //             $usuarioModificador,
+    //             null,
+    //             $camposModificados
+    //         );
+
+    //         return [
+    //             'success' => true,
+    //             'message' => 'Datos guardados correctamente en validación PERSONAL'
+    //         ];
+
+    //     } catch (Exception $e) {
+    //         $this->logError("Error en ActualizarDatosPersonales: " . $e->getMessage());
+    //         return [
+    //             'success' => false,
+    //             'error' => 'Error al insertar: ' . $e->getMessage()
+    //         ];
+    //     }
+    // }
 
 
 
