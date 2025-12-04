@@ -34,6 +34,9 @@ class GuiasPickup extends Controller
         }
         $result = $this->model->getFacturasGuiasPickup($data);
 
+        echo json_encode($result);
+        exit;
+
         if ($empresa == "COMPUTRON") {
             echo json_encode($result);
             exit;

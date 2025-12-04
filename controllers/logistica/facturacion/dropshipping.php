@@ -205,7 +205,7 @@ class Dropshipping extends Controller
         // echo json_encode($data);
         // exit();
 
-        $result = $this->model->GuardarDropshipping($data);
+        $result = $this->model->guardarDropshipping($data);
 
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
