@@ -353,7 +353,6 @@ class EmpleadosModel extends Model
 
 
 
-
     function ActualizarDatosPersonales($data = [])
     {
         try {
@@ -361,27 +360,27 @@ class EmpleadosModel extends Model
             $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
 
             // ============================
-            //  FORMATEAR FECHA → AAAAMMDD
+            //   FORMATEAR FECHA AAAAMMDD
             // ============================
             $fechaBruta = $data['FechaNac'] ?? null;
             $fechaFormateada = null;
 
             if (!empty($fechaBruta)) {
 
-                // Normalizar formatos tipo 2025/12/20 → 2025-12-20
-                $fechaBruta = str_replace('/', '-', $fechaBruta);
+                // Si viene con hora "2000-04-23 00:00:00.000" → tomamos solo la fecha
+                $soloFecha = explode(' ', $fechaBruta)[0];
 
-                // Convertir a un formato reconocible por PHP
-                $timestamp = strtotime($fechaBruta);
+                // Reemplazar / por -
+                $soloFecha = str_replace('/', '-', $soloFecha);
 
-                if ($timestamp === false) {
+                // Convertir a DateTime seguro
+                $fechaObj = DateTime::createFromFormat('Y-m-d', $soloFecha);
+
+                if (!$fechaObj) {
                     throw new Exception("Formato de fecha inválido: " . $fechaBruta);
                 }
 
-                // Crear fecha segura
-                $fechaObj = new DateTime(date('Y-m-d', $timestamp));
-
-                // FORMATO FINAL → AAAAMMDD
+                // Formato FINAL → AAAAMMDD
                 $fechaFormateada = $fechaObj->format('Ymd');
             }
 
@@ -389,26 +388,26 @@ class EmpleadosModel extends Model
             //       STORED PROCEDURE
             // ============================
             $sql = "EXEC SGO_EMP_REGISTRO_DATOS_TEMPORAL  
-            :EmpleadoID,
-            :Cedula,
-            :Direccion,
-            :EstadoCivil,
-            :FechaNac,
-            :Jefe,
-            :Nombre,
-            :PDecimos,
-            :PFondos,
-            :Telefono,
-            :Email,
-            :Estado";
+        :EmpleadoID,
+        :Cedula,
+        :Direccion,
+        :EstadoCivil,
+        :FechaNac,
+        :Jefe,
+        :Nombre,
+        :PDecimos,
+        :PFondos,
+        :Telefono,
+        :Email,
+        :Estado";
 
-            // Parámetros EXACTOS DEL SP
+            // Parámetros EXACTOS del SP
             $params = [
                 ':EmpleadoID' => $data['empleadoId'] ?? null,
                 ':Cedula' => $data['Cedula'] ?? null,
                 ':Direccion' => $data['Dirección'] ?? null,
                 ':EstadoCivil' => $data['EstadoCivil'] ?? null,
-                ':FechaNac' => $fechaFormateada,   // ← FECHA YA FORMATEADA
+                ':FechaNac' => $fechaFormateada,   // ← FECHA AAAAMMDD
                 ':Jefe' => $data['Jefe'] ?? null,
                 ':Nombre' => $data['Nombre'] ?? null,
                 ':PDecimos' => $data['PDecimos'] ?? null,
@@ -453,6 +452,7 @@ class EmpleadosModel extends Model
             ];
         }
     }
+
 
 
 
@@ -719,7 +719,7 @@ class EmpleadosModel extends Model
                 ':porcentajeDiscapacidad' => $data['porcentajeDiscapacidad'] ?? null,
                 ':tipoDiscapacidad' => $data['tipoDiscapacidad'] ?? null,
                 ':archivoDiscapacidadNombre' => $data['archivoDiscapacidadNombre'] ?? null
-               
+
             ];
 
             $rows = $this->db->execute($sql, $params);
