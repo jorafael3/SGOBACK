@@ -388,18 +388,19 @@ class EmpleadosModel extends Model
             //       STORED PROCEDURE
             // ============================
             $sql = "EXEC SGO_EMP_REGISTRO_DATOS_TEMPORAL  
-        :EmpleadoID,
-        :Cedula,
-        :Direccion,
-        :EstadoCivil,
-        :FechaNac,
-        :Jefe,
-        :Nombre,
-        :PDecimos,
-        :PFondos,
-        :Telefono,
-        :Email,
-        :Estado";
+            :EmpleadoID,
+            :Cedula,
+            :Direccion,
+            :EstadoCivil,
+            :FechaNac,
+            :Jefe,
+            :Nombre,
+            :PDecimos,
+            :PFondos,
+            :Telefono,
+            :Email,
+            :Estado,
+            :documento_estado_civil";
 
             // Parámetros EXACTOS del SP
             $params = [
@@ -414,7 +415,8 @@ class EmpleadosModel extends Model
                 ':PFondos' => $data['PFondos'] ?? null,
                 ':Telefono' => $data['Teléfono3'] ?? null,
                 ':Email' => $data['email_personal'] ?? null,
-                ':Estado' => $data['Estado'] ?? 0
+                ':Estado' => $data['Estado'] ?? 0,
+                ':documento_estado_civil' => $data['documento_estado_civil'] ?? null
             ];
 
             // Ejecutar
@@ -665,59 +667,142 @@ class EmpleadosModel extends Model
 
 
 
+    // function ActualizarEnfermedades($data = [])
+    // {
+    //     try {
+    //         // Desactivar transacciones implícitas
+    //         $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
+
+    //         $sql = "INSERT INTO SGO_EMP_DATOS_MEDICOS_EMPLEADOS
+    //     (
+    //         EmpleadoID,
+    //         alergias,
+    //         tieneAlergia,
+    //         contactoEmergenciaNombre,
+    //         contactoEmergenciaRelacion,
+    //         contactoEmergenciaTelefono,
+    //         tieneEnfermedad,
+    //         enfermedades,
+    //         tieneDiscapacidad,
+    //         porcentajeDiscapacidad,
+    //         tipoDiscapacidad,
+    //         archivoDiscapacidadNombre
+    //     )
+    //     VALUES
+    //     (
+    //         :empleadoId,
+    //         :alergias,
+    //         :tieneAlergia,
+    //         :contactoEmergenciaNombre,
+    //         :contactoEmergenciaRelacion,
+    //         :contactoEmergenciaTelefono,
+    //         :tieneEnfermedad,
+    //         :enfermedades,
+    //         :tieneDiscapacidad,
+    //         :porcentajeDiscapacidad,
+    //         :tipoDiscapacidad,
+    //         :archivoDiscapacidadNombre
+
+    //     )";
+
+    //         $params = [
+
+    //             ':empleadoId' => $data['empleadoId'] ?? null,
+    //             ':alergias' => $data['alergias'] ?? null,
+    //             ':tieneAlergia' => $data['tieneAlergia'] ?? 'NO',
+    //             ':contactoEmergenciaNombre' => $data['contactoEmergenciaNombre'] ?? null,
+    //             ':contactoEmergenciaRelacion' => $data['contactoEmergenciaRelacion'] ?? null,
+    //             ':contactoEmergenciaTelefono' => $data['contactoEmergenciaTelefono'] ?? null,
+    //             ':tieneEnfermedad' => $data['tieneEnfermedad'] ?? 'NO',
+    //             ':enfermedades' => $data['enfermedades'] ?? null,
+    //             ':tieneDiscapacidad' => $data['tieneDiscapacidad'] ?? 'NO',
+    //             ':porcentajeDiscapacidad' => $data['porcentajeDiscapacidad'] ?? null,
+    //             ':tipoDiscapacidad' => $data['tipoDiscapacidad'] ?? null,
+    //             ':archivoDiscapacidadNombre' => $data['archivoDiscapacidadNombre'] ?? null
+
+    //         ];
+
+    //         $rows = $this->db->execute($sql, $params);
+
+    //         // Asegurar commit explícito
+    //         $this->query("COMMIT");
+
+    //         if ($rows <= 0) {
+    //             throw new Exception("El INSERT no insertó ninguna fila.");
+    //         }
+
+    //         // --- AUDITORÍA DE CAMBIOS ---
+    //         $camposModificados = [];
+    //         foreach ($params as $campo => $valor) {
+    //             $nombreCampo = str_replace(":", "", $campo);
+    //             $camposModificados[$nombreCampo] = $valor;
+    //         }
+
+    //         $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+
+    //         $this->enviarAlertaCambio(
+    //             $data['empleadoId'],
+    //             'Actualización de Datos Médicos',
+    //             $usuarioModificador,
+    //             null,
+    //             $camposModificados
+    //         );
+
+    //         return [
+    //             'success' => true,
+    //             'message' => 'Datos médicos guardados correctamente'
+    //         ];
+
+    //     } catch (Exception $e) {
+
+    //         $this->logError("Error en ActualizarEnfermedades: " . $e->getMessage());
+
+    //         return [
+    //             'success' => false,
+    //             'error' => $e->getMessage(),
+    //             'debug' => $data
+    //         ];
+    //     }
+    // }
+
+
+
     function ActualizarEnfermedades($data = [])
     {
         try {
             // Desactivar transacciones implícitas
             $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
 
-            $sql = "INSERT INTO SGO_EMP_DATOS_MEDICOS_EMPLEADOS
-        (
-            EmpleadoID,
-            alergias,
-            tieneAlergia,
-            contactoEmergenciaNombre,
-            contactoEmergenciaRelacion,
-            contactoEmergenciaTelefono,
-            tieneEnfermedad,
-            enfermedades,
-            tieneDiscapacidad,
-            porcentajeDiscapacidad,
-            tipoDiscapacidad,
-            archivoDiscapacidadNombre
-        )
-        VALUES
-        (
+            $sql = "EXEC SGO_EMP_DATOS_MEDICOS_EMPLEADOS2
             :empleadoId,
             :alergias,
-            :tieneAlergia,
             :contactoEmergenciaNombre,
             :contactoEmergenciaRelacion,
             :contactoEmergenciaTelefono,
-            :tieneEnfermedad,
             :enfermedades,
+            :Editado,
+            :tieneAlergia,
+            :tieneEnfermedad,
             :tieneDiscapacidad,
             :porcentajeDiscapacidad,
             :tipoDiscapacidad,
             :archivoDiscapacidadNombre
-            
-        )";
+        ";
 
             $params = [
-
                 ':empleadoId' => $data['empleadoId'] ?? null,
                 ':alergias' => $data['alergias'] ?? null,
-                ':tieneAlergia' => $data['tieneAlergia'] ?? 'NO',
                 ':contactoEmergenciaNombre' => $data['contactoEmergenciaNombre'] ?? null,
                 ':contactoEmergenciaRelacion' => $data['contactoEmergenciaRelacion'] ?? null,
                 ':contactoEmergenciaTelefono' => $data['contactoEmergenciaTelefono'] ?? null,
-                ':tieneEnfermedad' => $data['tieneEnfermedad'] ?? 'NO',
                 ':enfermedades' => $data['enfermedades'] ?? null,
-                ':tieneDiscapacidad' => $data['tieneDiscapacidad'] ?? 'NO',
+                ':Editado' => $data['Editado'],
+                ':tieneAlergia' => $data['tieneAlergia'] ?? 0,
+                ':tieneEnfermedad' => $data['tieneEnfermedad'] ?? 0,
+                ':tieneDiscapacidad' => $data['tieneDiscapacidad'] ?? 0,
                 ':porcentajeDiscapacidad' => $data['porcentajeDiscapacidad'] ?? null,
                 ':tipoDiscapacidad' => $data['tipoDiscapacidad'] ?? null,
-                ':archivoDiscapacidadNombre' => $data['archivoDiscapacidadNombre'] ?? null
-
+                ':archivoDiscapacidadNombre' => $data['archivoDiscapacidadNombre'] ?? null,
             ];
 
             $rows = $this->db->execute($sql, $params);
@@ -726,7 +811,7 @@ class EmpleadosModel extends Model
             $this->query("COMMIT");
 
             if ($rows <= 0) {
-                throw new Exception("El INSERT no insertó ninguna fila.");
+                throw new Exception("La operación no afectó ninguna fila.");
             }
 
             // --- AUDITORÍA DE CAMBIOS ---
@@ -748,7 +833,7 @@ class EmpleadosModel extends Model
 
             return [
                 'success' => true,
-                'message' => 'Datos médicos guardados correctamente'
+                'message' => ($data['Editado'] == 1 ? 'Datos médicos actualizados' : 'Datos médicos insertados')
             ];
 
         } catch (Exception $e) {

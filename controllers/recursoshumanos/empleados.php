@@ -113,18 +113,82 @@ class Empleados extends Controller
         if (!$jwtData) {
             return;
         }
-        $data = $this->getJsonInput();
+
+        // Detectar si es FormData (con archivos) o JSON
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $isFormData = stripos($contentType, 'multipart/form-data') !== false;
+
+        // Si es FormData, usar $_POST; si es JSON, usar getJsonInput()
+        if ($isFormData) {
+            $data = $_POST;
+            $empleadoId = $_POST['empleadoId'] ?? null;
+        } else {
+            $data = $this->getJsonInput();
+            $empleadoId = $data['empleadoId'] ?? null;
+        }
+
+        if (!$empleadoId) {
+            $this->jsonResponse(['success' => false, 'error' => 'Falta el ID del empleado'], 400);
+            return;
+        }
+
+        $fileName = null;
+
+        // Verificar si se subió un archivo de documento_estado_civil (solo en FormData)
+        if ($isFormData && isset($_FILES['documento_estado_civil']) && $_FILES['documento_estado_civil']['error'] === UPLOAD_ERR_OK) {
+
+            // Ruta base
+            $SO = PHP_OS;
+            if (stripos($SO, 'Linux') !== false) {
+                $baseUpload = '/var/www/html/sgo_docs/Cartimex/recursoshumanos/documento_estado_civil';
+            } else {
+                $baseUpload = 'C:\xampp\htdocs\sgo_docs\Cartimex\recursoshumanos\documento_estado_civil';
+            }
+
+            // Crear carpeta si no existe
+            if (!file_exists($baseUpload)) {
+                mkdir($baseUpload, 0777, true);
+            }
+
+            $file = $_FILES['documento_estado_civil'];
+            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+            // Nombre final del archivo: EmpleadoID_TIMESTAMP.ext
+            $fileName = $empleadoId . "_" . time() . "." . $extension;
+            $targetPath = $baseUpload . DIRECTORY_SEPARATOR . $fileName;
+
+            // Mover el archivo
+            if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+                $this->jsonResponse(['success' => false, 'error' => 'Error al mover el archivo subido'], 500);
+                return;
+            }
+        } else if (isset($data['documento_estado_civil_nombre']) && !empty($data['documento_estado_civil_nombre'])) {
+            // Si no se sube archivo pero se quiere mantener uno existente
+            $fileName = $data['documento_estado_civil_nombre'];
+        }
+
+        // Agregar el nombre del archivo a los datos
+        $data['documento_estado_civil'] = $fileName;
 
         $result = $this->model->ActualizarDatosPersonales($data);
 
         if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Datos personales actualizados correctamente',
+                'fileName' => $fileName,
+                'data' => $result
+            ], 200);
         } else {
+            // Si falla la BD y se subió archivo, eliminamos el archivo huérfano
+            if ($fileName && isset($targetPath) && file_exists($targetPath)) {
+                unlink($targetPath);
+            }
             $this->jsonResponse([
                 'success' => false,
                 'error' => 'Error al actualizar datos personales',
                 'details' => $result
-            ], 200);
+            ], 500);
         }
     }
 
@@ -409,7 +473,7 @@ class Empleados extends Controller
             'porcentajeDiscapacidad' => $_POST['porcentajeDiscapacidad'] ?? 0,
             'tipoDiscapacidad' => $_POST['tipoDiscapacidad'] ?? '',
             'archivoDiscapacidadNombre' => $fileName,
-            'Editado' => $_POST['Editado'] ?? 'SI',
+            'Editado' => $_POST['Editado'] ?? 0,
             'Creado_Por' => $creadoPor
         ];
 
