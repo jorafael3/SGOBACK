@@ -413,7 +413,7 @@ class EmpleadosModel extends Model
                 ':PDecimos' => $data['PDecimos'] ?? null,
                 ':PFondos' => $data['PFondos'] ?? null,
                 ':Telefono' => $data['Teléfono3'] ?? null,
-                ':Email' => $data['email'] ?? null,
+                ':Email' => $data['email_personal'] ?? null,
                 ':Estado' => $data['Estado'] ?? 0
             ];
 
