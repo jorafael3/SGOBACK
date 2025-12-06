@@ -456,8 +456,6 @@ class EmpleadosModel extends Model
 
 
 
-
-
     function ActualizarCargasEmpleado($data = [])
     {
         try {
