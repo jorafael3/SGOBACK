@@ -55,7 +55,7 @@ class Administrador extends Controller
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener vacaciones',
+                'error' => 'Error al obtener getEmpleadoIndividual',
                 'details' => $result
             ], 200);
         }

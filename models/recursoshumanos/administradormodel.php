@@ -20,12 +20,11 @@ class AdministradorModel extends Model
         try {
 
 
-            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS_INDIVIDUAL  @empresa = :empresa , @cedula = :cedula";
+            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS  @empresa = :empresa";
 
             $params = [
 
                 ':empresa' => $data['empresa'] ?? null,
-                ':cedula' => $data['cedula'] ?? null,
 
             ];
 
@@ -52,7 +51,7 @@ class AdministradorModel extends Model
         try {
 
 
-            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS_INDIVIDUAL  @empresa: :empresa ,  @cedula: :cedula";
+            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS_INDIVIDUAL  @empresa = :empresa ,  @cedula = :cedula";
 
             $params = [
 
