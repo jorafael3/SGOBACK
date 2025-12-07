@@ -479,7 +479,8 @@ class EmpleadosModel extends Model
             Cedula,
             TipoCarga,
             Carga,
-            Archivo_Cedula
+            Archivo_Cedula,
+            Tipo_solicitud
         )
         VALUES
         (
@@ -495,7 +496,8 @@ class EmpleadosModel extends Model
             :cedula,
             :TipoCarga,
             1,
-            :documento_carga
+            :documento_carga,
+            'cargas'
         )";
 
             // Parámetros
@@ -580,7 +582,8 @@ class EmpleadosModel extends Model
             Titulo,
             Institucion,
             anio,
-            titulo_pdf
+            titulo_pdf,
+            Tipo_solicitud
            
         )
         VALUES
@@ -589,7 +592,8 @@ class EmpleadosModel extends Model
             :titulo,
             :institucion,
             :anio,
-            :titulo_pdf
+            :titulo_pdf,
+            'estudios'
 
         )";
 
