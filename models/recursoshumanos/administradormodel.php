@@ -20,11 +20,12 @@ class AdministradorModel extends Model
         try {
 
 
-            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS  @empresa = :empresa";
+            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS_INDIVIDUAL  @empresa = :empresa , @cedula = :cedula";
 
             $params = [
 
                 ':empresa' => $data['empresa'] ?? null,
+                ':cedula' => $data['cedula'] ?? null,
 
             ];
 
@@ -44,5 +45,36 @@ class AdministradorModel extends Model
     }
 
 
+
+
+    function getEmpleadoIndividual($data = [])
+    {
+        try {
+
+
+            $sql = "EXEC SGO_EMP_CARGAR_EMPLEADOS_INDIVIDUAL  @empresa: :empresa ,  @cedula: :cedula";
+
+            $params = [
+
+                ':empresa' => $data['empresa'] ?? null,
+                ':cedula' => $data['cedula'] ?? null,
+
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en getEmpleadoIndividual: " . $e->getMessage());
+            error_log("Exception in getEmpleadoIndividual: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 
 }

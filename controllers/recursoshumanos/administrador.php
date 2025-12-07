@@ -39,6 +39,30 @@ class Administrador extends Controller
 
 
 
+    function getEmpleadoIndividual()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->getEmpleadoIndividual($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener vacaciones',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
 
 
 
