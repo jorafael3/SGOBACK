@@ -235,9 +235,8 @@ class VerificarFacturas extends Controller
             if ($ValidarRma['success']) {
                 $RMAID = count($ValidarRma['data']) > 0 ? $ValidarRma['data'][0]['ID'] : "";
 
-                //      echo json_encode($ValidarRma);
+                //echo json_encode($ValidarRma);
                 // exit();
-
                 if (count($ValidarRma['data']) == 0) {
                     $RMA = $this->model->GuardarRmaFacturasCab($data);
                     $result[] = $RMA;
@@ -253,11 +252,20 @@ class VerificarFacturas extends Controller
                             "rmafacturaid" => $RMAID,
                             "producto" => $productos_series[$i]['productoId'],
                             "serie" => $cantidad_series[$j],
-                            "usuario" => $data['usrid']
+                            "usuario" => $data['usrid'],
+                            "factura_id" => $factura
                         ];
                         $RMADT = $this->model->GuardarRmaFacturasDet($d);
+
+                        // echo json_encode($RMADT);
+                        // exit();
                         if (!$RMADT || !$RMADT['success']) {
                             $ERRORES[] = $RMADT;
+                        } else {
+                            $ACTUALIZARRMAPRODUCTOS = $this->model->ActualizarRMAProductos($d, $RMADT["data"][0]["RMAIDDT"]);
+                            if (!$ACTUALIZARRMAPRODUCTOS || !$ACTUALIZARRMAPRODUCTOS['success']) {
+                                $ERRORES[] = $ACTUALIZARRMAPRODUCTOS;
+                            }
                         }
                     }
                 }
@@ -281,7 +289,6 @@ class VerificarFacturas extends Controller
                 }
 
                 for ($i = 0; $i < count($BODEGAS); $i++) {
-
                     $d = [
                         "factura_id" => $factura,
                         "tipo" => "VEN-FA",

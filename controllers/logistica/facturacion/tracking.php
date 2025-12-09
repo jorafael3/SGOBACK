@@ -20,6 +20,9 @@ class tracking extends Controller
         }
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
+        $empresa = $data['userdata']["empleado_empresa"] ?? null;
+
+
         if (!$secuencia) {
             $this->jsonResponse([
                 'success' => false,
@@ -37,12 +40,15 @@ class tracking extends Controller
             ], 200);
             return;
         }
-        echo json_encode($result);
-        exit();
-        $det = $this->model->getFacturasDet($result['data'][0]['Id']);
+        $det = [];
+        if (strtoupper($empresa) == 'CARTIMEX') {
+            $det = $this->model->getFacturasDetCartimex($result['data'][0]['Id']);
+        } else {
+            $det = $this->model->getFacturasDetComputron($result['data'][0]['Id']);
+        }
 
-
-
+        // echo json_encode($result);
+        // exit();
 
         if ($result && $result['success']) {
             $this->jsonResponse([
