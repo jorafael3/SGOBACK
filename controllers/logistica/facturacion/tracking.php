@@ -18,6 +18,8 @@ class tracking extends Controller
         // if (!$jwtData) {
         //     return; // La respuesta de error ya fue enviada automáticamente
         // }
+          echo json_encode("asdasdasd");
+        exit();
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
         $empresa = $data['userdata']["empleado_empresa"] ?? null;
