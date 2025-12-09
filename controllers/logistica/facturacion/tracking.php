@@ -14,10 +14,10 @@ class tracking extends Controller
 
     function GetFacturasTracking()
     {
-        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
-        if (!$jwtData) {
-            return; // La respuesta de error ya fue enviada automáticamente
-        }
+        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        // if (!$jwtData) {
+        //     return; // La respuesta de error ya fue enviada automáticamente
+        // }
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
         $empresa = $data['userdata']["empleado_empresa"] ?? null;
