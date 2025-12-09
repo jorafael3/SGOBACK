@@ -298,7 +298,6 @@ class Empleados extends Controller
 
 
 
-
     function ActualizarEstudios()
     {
         $jwtData = $this->authenticateAndConfigureModel(2);
