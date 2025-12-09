@@ -159,8 +159,6 @@ class VerificarFacturasModel extends Model
         }
     }
 
-
-
     function GuardarRmaFacturasCab($datos)
     {
         try {
@@ -205,6 +203,36 @@ class VerificarFacturasModel extends Model
             ];
 
             // Usar la conexión automática basada en el JWT para SP
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error guardando series SGL: " . $e->getMessage());
+            return [
+                "success" => false,
+                "message" => "Error guardando series SGL: " . $e->getMessage()
+            ];
+        }
+    }
+    function ActualizarRMAProductos($datos,$RMADTID){
+        try {
+            $estado = 'VENDIDO';
+            $sql = "UPDATE RMA_PRODUCTOS 
+                    SET 
+                        FACTURAID=:facturaid, 
+                        ESTADO=:estado,
+                        RmaDtId = :RmaDtId,
+                        CreadoDate = GETDATE(),
+                        CreadoPor = :CreadoPor 
+                WHERE serie = :serie
+                AND ProductoId = :producto";
+            $params = [
+                ":facturaid" => $datos['factura_id'],
+                ":estado" => $estado,
+                ":RmaDtId" => $RMADTID,
+                ":CreadoPor" => $datos['usuario'],
+                ":serie" => $datos['serie'],
+                ":producto" => $datos['producto']
+            ];
             $stmt = $this->db->execute($sql, $params);
             return $stmt;
         } catch (Exception $e) {

@@ -133,7 +133,196 @@ class GuiasPickup extends Controller
         }
     }
 
+    function GetFormasDespachoGuiasPickup()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+        $data = [
+            array(
+                "id" => "Urbano",
+                "descripcion" => "Urbano"
+            ),
+            array(
+                "id" => "Tramaco",
+                "descripcion" => "Tramaco"
+            ),
+            array(
+                "id" => "Servientrega",
+                "descripcion" => "Servientrega"
+            ),
+            array(
+                "id" => "Vehiculo_Computron",
+                "descripcion" => "Vehiculo Computron"
+            ),
+            array(
+                "id" => "Entrega_en_tienda",
+                "descripcion" => "Entrega en tienda"
+            ),
+            array(
+                "id" => "Casillero",
+                "descripcion" => "Casillero"
+            ),
+        ];
+        
+        $result = [
+            'success' => true,
+            'data' => $data
+        ];
+        $this->jsonResponse($result, 200);
+    }
+
+    function GetDatosSiscoDropShipping()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+        $data = $this->getJsonInput();
+        $secuencia_sisco = $data['secuencia_sisco'] ?? null;
+        $factura_id = $data['factura_id'] ?? null;
+        $tipo_pedido = $data['tipo_pedido'] ?? null;
+        $result = [];
+        if (trim($secuencia_sisco) != "") {
+            $datos_sisco = $this->model->getDatosSisco($secuencia_sisco);
+            if ($datos_sisco["success"] && count($datos_sisco["data"]) > 0) {
+                $direccion = $datos_sisco["data"][0]['direccion'];
+                $referencia = $datos_sisco["data"][0]['referencias'];
+                $comentario = $datos_sisco["data"][0]['comentarios'];
+                $ciudad = $datos_sisco["data"][0]['ciudad'];
+                $celular = $datos_sisco["data"][0]['celular'];
+                $mail = $datos_sisco["data"][0]['mail'];
+                $bodegaret = $datos_sisco["data"][0]['bodegaret'];
+                $result = [
+                    'success' => true,
+                    'data' => [
+                        'DIRECCION' => trim($direccion),
+                        'REFERENCIA' => trim($referencia),
+                        'COMENTARIO' => trim($comentario),
+                        'CIUDAD' => trim($ciudad),
+                        'CELULAR' => trim($celular),
+                        'MAIL' => trim($mail),
+                        'BODEGARET' => trim($bodegaret),
+                        "TIPO_PEDIDO" => $tipo_pedido
+                    ]
+                ];
+            }
+        } else {
+            $datos_dropshipping = $this->model->getDatosDropShipping($factura_id);
+            if ($datos_dropshipping["success"] && count($datos_dropshipping["data"]) > 0) {
+                $direccion = $datos_dropshipping["data"][0]["Direccion"];
+                $referencia = $datos_dropshipping["data"][0]["Referencia"];
+                $ciudad = "";
+                $celular = $datos_dropshipping["data"][0]["Telefono"];
+                $mail = $datos_dropshipping["data"][0]["Email"];
+                $comentario = "";
+                $bodegaret = $datos_dropshipping["data"][0]["TIENDA_RETIRO_NOMBRE"];
+                $result = [
+                    'success' => true,
+                    'data' => [
+                        'DIRECCION' => trim($direccion),
+                        'REFERENCIA' => trim($referencia),
+                        'COMENTARIO' => $comentario,
+                        'CIUDAD' => $ciudad,
+                        'CELULAR' => trim($celular),
+                        'MAIL' => trim($mail),
+                        'BODEGARET' => trim($bodegaret),
+                        "TIPO_PEDIDO" => $tipo_pedido
+                    ]
+                ];
+            }
+        }
+        // $result = $this->model->getDatosSisco($secuencia_sisco))
+        $result["success"] = true;
+        $result["parametros_enviados"] = $data;
+        $this->jsonResponse($result, 200);
+    }
+
     function GuardarGuiasPickup()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+
+
+
+        $data = $this->getJsonInput();
+
+
+
+        // $BODEGAS = explode(',', $data['bodegaInfo'][0] ?? null)   ?? null;
+        $BODEGAS = $data['bodegaInfo'] ?? null;
+        $id_unico = date('YmdHis') . rand(1000, 9999);
+        $es_consolidado = $data['consolidacion']["activada"];
+
+
+        $data['id_unico'] = $id_unico;
+        $data['usrid'] = $data['userdata']["usrid"] ?? null;
+        $data['es_consolidado'] = $es_consolidado;
+        $data['numeroGuia'] = $es_consolidado ? $data['consolidacion']["guia"] : $data['numeroGuia'];
+
+        $this->model->db->beginTransaction();
+
+        // echo json_encode($BODEGAS);
+        // exit;
+        $ERRORESFACTURAS = [];
+        $ERRORESGUIA = [];
+
+        if ($es_consolidado == true) {
+            foreach ($BODEGAS as $bodega) {
+                $data['bodega'] = $bodega;
+                $FACTURASLI = $this->model->ActualizarFacturasListasParaConsolidacion($data);
+                if (!$FACTURASLI) {
+                    $ERRORESFACTURAS[] = $bodega;
+                }
+            }
+            // json_encode($data);
+            // exit();
+        } else {
+            foreach ($BODEGAS as $bodega) {
+                $data['bodega'] = $bodega;
+                $FACTURASLI = $this->model->ActualizarFacturasListas($data);
+                if (!$FACTURASLI) {
+                    $ERRORESFACTURAS[] = $bodega;
+                }
+            }
+        }
+        if ($es_consolidado == true) {
+            foreach ($BODEGAS as $bodega) {
+                $data['bodega'] = $bodega;
+                $GUIAS = $this->model->GuardarListaGuias($data);
+            }
+        }
+
+
+        // foreach ($data['guiasPorBodega'] as $guia) {
+        //     $guia['factura'] = $data["factura"];
+        //     $guia['usrid'] = $data["usrid"];
+        //     $FACTURAS = $this->model->GuardarListaGuias($guia);
+        //     if (!$FACTURAS) {
+        //         $ERRORESGUIA[] = $guia;
+        //     }
+        // }
+
+        if (count($ERRORESFACTURAS) + count($ERRORESGUIA) > 0) {
+            $this->model->db->rollback();
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Error al actualizar las facturas en las bodegas: ' . implode(', ', $ERRORESFACTURAS),
+            ], 200);
+            return;
+        }
+        $this->model->db->commit();
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Datos guardados correctamente',
+            // 'data_recibida' => $GUIAS
+        ], 200);
+    }
+
+    function GuardarGuiasPickupComputron()
     {
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {

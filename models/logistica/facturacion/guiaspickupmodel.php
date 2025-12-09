@@ -1,18 +1,69 @@
 <?php
 
 // require_once __DIR__ . '/../logsmodel.php';
+require_once __DIR__ . '/../../../libs/database.php';
 
 
 class GuiasPickupModel extends Model
 {
+    private $mysqlDb;
+
     public function __construct($empresaCode = null)
     {
         // Usar la empresa por defecto del sistema si no se especifica
         parent::__construct($empresaCode);
+        $this->mysqlDb = MySQLConnection::getInstance();
 
         // Debug: mostrar qué empresa estás usando
         if (DEBUG) {
             error_log("GuiasPickupModel conectado a: " . $this->empresaCode);
+        }
+    }
+
+    /**
+     * Ejemplo: Obtener datos de MySQL (base de datos SISCO)
+     * Este método muestra cómo usar MySQLConnection desde un modelo
+     */
+    function getDatosSisco($secuencia = null)
+    {
+        try {
+            // Obtener instancia de MySQLConnection
+            $sql = "SELECT a.*, p.bodega as bodegaret, 
+                    c.sucursalid as sucursalret , 
+                    d.sucursalid as sucursalfact , 
+                    cr.doc1, cr.doc2, cr.doc3, cr.doc4, cr.doc5
+                    FROM covidsales a 
+                    inner join sisco.covidciudades d on a.bodega= d.almacen 
+                    left outer join covidpickup p on p.orden= a.secuencia 
+                    left outer join covidcredito cr on cr.transaccion= a.secuencia
+                    left outer join sisco.covidciudades c on p.bodega= c.almacen 
+                    where a.secuencia = '$secuencia'  and a.anulada<> '1'";
+            $resultado = $this->mysqlDb->query($sql, []);
+            return $resultado;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo datos de MySQL: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    function getDatosDropShipping($factura_id = null)
+    {
+        try {
+            $sql = "SELECT s.Nombre as TIENDA_RETIRO_NOMBRE, * from Cli_Direccion_Dropshipping c
+				left join SIS_SUCURSALES s
+				on c.tienda_retiro = s.ID
+				where c.Facturaid = :factura_id";
+            $params = [
+                ":factura_id" => $factura_id
+            ];
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo facturas guías pickup: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -21,11 +72,9 @@ class GuiasPickupModel extends Model
     {
         try {
             $sql = "EXECUTE SGO_LOG_GUIAS_PIKUP_FACTURAS_2 @usuario = :usuario";
-
             $params = [
                 ":usuario" => $data['usrid']
             ];
-
             $stmt = $this->query($sql, $params);
             return $stmt;
         } catch (Exception $e) {
@@ -155,6 +204,51 @@ class GuiasPickupModel extends Model
                 ":factura_id" => $datos['factura'],
                 ":tipo" => $datos['tipo'],
                 ":creado_por" => $datos['usrid']
+            ];
+
+            $result = $this->db->execute($sql, $params);
+            return $result;
+        } catch (Exception $e) {
+            $this->logError("Error guardando lista de guías: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    //** GUARDAR COMPUTRON */
+
+    function GuardarDatosDespacho($data)
+    {
+        try {
+            $sql = "INSERT INTO SGO_LOG_GUIAS_DATOS_DESPACHO
+            (
+                factura_id,
+                bodega_id,
+                forma_despacho,
+                enviar_cliente,
+                guia,
+                bultos,
+                comentario,
+                creado_por
+            ) VALUES (
+                :factura_id,
+                :bodega_id,
+                :forma_despacho,
+                :enviar_cliente,
+                :guia,
+                :bultos,
+                :comentario,
+                :creado_por
+            )";
+
+            $params = [
+                ":factura_id" => $data['factura'],
+                ":bodega_id" => $data['bodegaInfo'][0],
+                ":forma_despacho" => $data['forma_despacho'],
+                ":enviar_cliente" => $data['enviar_cliente'],
+                ":guia" => $data['numeroGuia'],
+                ":bultos" => $data['numeroBultos'],
+                ":comentario" => $data['comentarios'],
+                ":creado_por" => $data['userdata']['usrid']
             ];
 
             $result = $this->db->execute($sql, $params);
