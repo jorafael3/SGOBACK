@@ -22,6 +22,8 @@ class tracking extends Controller
         $secuencia = $data['secuencia'] ?? null;
         $empresa = $data['userdata']["empleado_empresa"] ?? null;
 
+        echo json_encode($data);
+        exit();
 
         if (!$secuencia) {
             $this->jsonResponse([
