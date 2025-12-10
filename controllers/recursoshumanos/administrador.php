@@ -234,4 +234,128 @@ class Administrador extends Controller
         }
     }
 
+
+
+
+
+    function AprobarDatosPersonales()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->AprobarDatosPersonales($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener AprobarDatosMedicos',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+
+    function RechazarDatosPersonales()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->RechazarDatosMedicos($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener AprobarDatosMedicos',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+    function GetSolicitudesEstudios()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->GetSolicitudesEstudios($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener GetSolicitudesEstudios',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+
+      function AprobarEstudio()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->AprobarEstudio($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener AprobarDatosMedicos',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+
+    function RechazarEstudio()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+
+        $data = $this->getJsonInput();
+
+        $result = $this->model->RechazarEstudio($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener AprobarDatosMedicos',
+                'details' => $result
+            ], 200);
+        }
+    }
 }
