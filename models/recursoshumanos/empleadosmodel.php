@@ -155,6 +155,7 @@ class EmpleadosModel extends Model
             // $mail->addAddress('ktomala@cartimex.com');
             // $mail->addAddress('cpincay@cartimex.com');
 
+
             // Obtener fecha y hora actual
             date_default_timezone_set('America/Guayaquil');
             $fechaHora = date('d/m/Y H:i:s');
