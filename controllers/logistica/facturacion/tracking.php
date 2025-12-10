@@ -14,18 +14,17 @@ class tracking extends Controller
 
     function GetFacturasTracking()
     {
-        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
-        // if (!$jwtData) {
-        //     return; // La respuesta de error ya fue enviada automáticamente
-        // }
-          echo json_encode("asdasdasd");
-        exit();
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
         $empresa = $data['userdata']["empleado_empresa"] ?? null;
 
-        echo json_encode($data);
-        exit();
+        // echo json_encode($secuencia);
+        // exit();
 
         if (!$secuencia) {
             $this->jsonResponse([
@@ -36,6 +35,8 @@ class tracking extends Controller
         }
 
         $result = $this->model->getFacturasCab($secuencia);
+        // echo json_encode($result);
+        // exit();
 
         if (count($result['data']) == 0) {
             $this->jsonResponse([
@@ -51,8 +52,7 @@ class tracking extends Controller
             $det = $this->model->getFacturasDetComputron($result['data'][0]['Id']);
         }
 
-        // echo json_encode($result);
-        // exit();
+
 
         if ($result && $result['success']) {
             $this->jsonResponse([

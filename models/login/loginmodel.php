@@ -46,7 +46,7 @@ class LoginModel extends Model
                 $this->recordFailedAttempt($username);
                 return [
                     'success' => false,
-                    'message' => 'Credenciales inválidas'
+                    'message' => 'Credenciales inválidas 1'
                 ];
             }
 
@@ -54,7 +54,7 @@ class LoginModel extends Model
                 $this->recordFailedAttempt($username);
                 return [
                     'success' => false,
-                    'message' => 'Credenciales inválidas'
+                    'message' => 'Credenciales inválidas 2'
                 ];
             }
          
@@ -74,7 +74,7 @@ class LoginModel extends Model
             //         'message' => 'Credenciales inválidas'
             //     ];
             // }
-            if(!(strtolower($password) === strtolower($user["data"][0]['clave']))){
+            if(!(strtolower(trim($password)) === strtolower(trim($user["data"][0]['clave'])))){
                 $this->recordFailedAttempt($username);
                 return [
                     'success' => false,
