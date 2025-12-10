@@ -150,6 +150,9 @@ class EmpleadosModel extends Model
             // Destinatario
             $mail->setFrom('sgoinfocorreo@gmail.com', 'Sistema SGO');
             $mail->addAddress('nadelaese@gmail.com');
+
+            // $mail->addAddress('kfranco@cartimex.com');
+            // $mail->addAddress('ktomala@cartimex.com');
             // $mail->addAddress('cpincay@cartimex.com');
 
             // Obtener fecha y hora actual
