@@ -321,6 +321,8 @@ class Controller
                 ], 405);
                 return false;
             }
+        }else{
+            return true;
         }
         
         $jwtData = $this->configureModelWithJWT();

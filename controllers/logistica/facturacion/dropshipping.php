@@ -38,6 +38,40 @@ class Dropshipping extends Controller
 
         $result = $this->model->getFacturasDropshipping($data);
 
+        // Agrupar por FACTURA_SECUENCIA y combinar bodegas
+        if ($result && $result['success'] && count($result['data']) > 0) {
+            $facturasAgrupadas = [];
+            
+            foreach ($result['data'] as $factura) {
+                $secuencia = $factura['FACTURA_SECUENCIA'];
+                
+                if (!isset($facturasAgrupadas[$secuencia])) {
+                    // Primera vez que vemos esta factura
+                    $facturasAgrupadas[$secuencia] = $factura;
+                    $facturasAgrupadas[$secuencia]['ID_BODEGA'] = [$factura['ID_BODEGA']];
+                    $facturasAgrupadas[$secuencia]['CODIGOS_BODEGA'] = [$factura['CODIGOS_BODEGA']];
+                } else {
+                    // Ya existe esta factura, agregar bodega si no está
+                    if (!in_array($factura['ID_BODEGA'], $facturasAgrupadas[$secuencia]['ID_BODEGA'])) {
+                        $facturasAgrupadas[$secuencia]['ID_BODEGA'][] = $factura['ID_BODEGA'];
+                    }
+                    if (!in_array($factura['CODIGOS_BODEGA'], $facturasAgrupadas[$secuencia]['CODIGOS_BODEGA'])) {
+                        $facturasAgrupadas[$secuencia]['CODIGOS_BODEGA'][] = $factura['CODIGOS_BODEGA'];
+                    }
+                }
+            }
+            
+            // Convertir arrays de bodegas a strings separados por comas
+            $facturasFinales = [];
+            foreach ($facturasAgrupadas as $factura) {
+                $factura['ID_BODEGA'] = implode(',', $factura['ID_BODEGA']);
+                $factura['CODIGOS_BODEGA'] = implode(',', $factura['CODIGOS_BODEGA']);
+                $facturasFinales[] = $factura;
+            }
+            
+            $result['data'] = $facturasFinales;
+        }
+
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
         } else {
@@ -205,7 +239,7 @@ class Dropshipping extends Controller
         // echo json_encode($data);
         // exit();
 
-        $result = $this->model->GuardarDropshipping($data);
+        $result = $this->model->guardarDropshipping($data);
 
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);

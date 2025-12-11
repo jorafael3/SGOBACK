@@ -18,8 +18,14 @@ class tracking extends Controller
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
+
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
+        $empresa = $data['userdata']["empleado_empresa"] ?? null;
+
+        // echo json_encode($secuencia);
+        // exit();
+
         if (!$secuencia) {
             $this->jsonResponse([
                 'success' => false,
@@ -29,11 +35,26 @@ class tracking extends Controller
         }
 
         $result = $this->model->getFacturasCab($secuencia);
+        // echo json_encode($result);
+        // exit();
+
+        if (count($result['data']) == 0) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'No se encontraron datos para la secuencia proporcionada'
+            ], 200);
+            return;
+        }
+        $det = [];
+        if (strtoupper($empresa) == 'CARTIMEX') {
+            $det = $this->model->getFacturasDetCartimex($result['data'][0]['Id']);
+        } else {
+            $det = $this->model->getFacturasDetComputron($result['data'][0]['Id']);
+        }
 
 
 
         if ($result && $result['success']) {
-            $det = $this->model->getFacturasDet($result['data'][0]['Id']);
             $this->jsonResponse([
                 'success' => true,
                 'data' => $result['data'],
@@ -47,7 +68,8 @@ class tracking extends Controller
         }
     }
 
-    function GetFacturasSeries() {
+    function GetFacturasSeries()
+    {
 
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {
@@ -64,14 +86,14 @@ class tracking extends Controller
         }
 
         $result = $this->model->getfacturasSeries($factura_id);
-        
+
         if ($result && $result['success']) {
             // Agrupar series por código de producto
             $productosAgrupados = [];
-            
+
             foreach ($result['data'] as $item) {
                 $codigo = $item['producto_codigo'];
-                
+
                 if (!isset($productosAgrupados[$codigo])) {
                     $productosAgrupados[$codigo] = [
                         'codigo' => $codigo,
@@ -79,13 +101,13 @@ class tracking extends Controller
                         'series' => []
                     ];
                 }
-                
+
                 // Agregar serie si no está duplicada
                 if (!in_array($item['Serie'], $productosAgrupados[$codigo]['series'])) {
                     $productosAgrupados[$codigo]['series'][] = $item['Serie'];
                 }
             }
-            
+
             // Convertir arrays de series a strings separados por "/"
             $productosFinal = [];
             foreach ($productosAgrupados as $producto) {
@@ -95,7 +117,7 @@ class tracking extends Controller
                     'series' => implode('/', $producto['series'])
                 ];
             }
-            
+
             $this->jsonResponse([
                 'success' => true,
                 'data' => $productosFinal

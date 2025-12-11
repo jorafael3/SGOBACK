@@ -5,6 +5,8 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+
+
 class EmpleadosModel extends Model
 {
     public function __construct($empresaCode = null)
@@ -19,13 +21,16 @@ class EmpleadosModel extends Model
         try {
 
 
-            $sql = "SELECT e.Código as Cedula , e.Nombre , e.Dirección , e.Teléfono3
-                , e.FechaNac , j.Nombre as Jefe, e.email , d.Nombre , e.EstadoCivil ,
+            $sql = "SELECT e.Código as Cedula , e.Nombre , VD.Direccion as Dirección , VD.Telefono as Teléfono3
+                , e.FechaNac , j.Nombre as Jefe, VD.email , e.email_personal , d.Nombre , e.EstadoCivil , e.Nombre as Nombre_ficha,
                 CASE WHEN e.PDecimos = 1 THEN 'SI' ELSE 'NO' END AS PDecimos,
-                CASE WHEN e.ProvisionaFR = 1 THEN 'SI' ELSE 'NO' END AS PFondos
+                CASE WHEN e.ProvisionaFR = 1 THEN 'SI' ELSE 'NO' END AS PFondos , isnull(vd.Estado, 0) as Estado 
+				, FU.Nombre AS Cargo , e.Genero ,  isnull(e.foto_perfil, '') as foto_perfil 
                 from EMP_EMPLEADOS e
                 inner join EMP_EMPLEADOS j ON e.PadreID = j.ID
                 inner join SIS_DEPARTAMENTOS D on E.DepartamentoID = D.ID
+				left outer join SGO_EMPLEADOS_VALIDACIONES VD on vd.EmpleadoID = e.ID
+				inner join EMP_FUNCIONES FU ON FU.ID = E.FunciónID
                 WHERE e.ID = :empleadoId
                 ";
 
@@ -59,7 +64,17 @@ class EmpleadosModel extends Model
 
 
             $sql = "
-               SELECT * FROM EMP_EMPLEADOS_CARGAS WHERE EmpleadoID = :empleadoId
+
+            SELECT 
+                CASE 
+                    WHEN Estado = 0 THEN 'PENDIENTE DE APROBACION'
+                    WHEN Estado = 1 THEN 'APROBADO'
+                    ELSE 'DESCONOCIDO'
+                END AS EstadoDescripcion,
+                *
+            FROM EMP_EMPLEADOS_CARGAS_PREVIA
+            WHERE EmpleadoID =  :empleadoId
+
                 ";
 
             $params = [
@@ -116,7 +131,8 @@ class EmpleadosModel extends Model
     }
 
 
-    function SolicitudActualizacionDatos($data = [])
+
+    function enviarAlertaCambio($empleadoId, $seccion, $usuarioModificador, $empleadoNombre = null, $camposModificados = [])
     {
         try {
             $mail = new PHPMailer(true);
@@ -135,9 +151,35 @@ class EmpleadosModel extends Model
             $mail->setFrom('sgoinfocorreo@gmail.com', 'Sistema SGO');
             $mail->addAddress('nadelaese@gmail.com');
 
+            // $mail->addAddress('kfranco@cartimex.com');
+            // $mail->addAddress('ktomala@cartimex.com');
+            // $mail->addAddress('cpincay@cartimex.com');
+
+
+            // Obtener fecha y hora actual
+            date_default_timezone_set('America/Guayaquil');
+            $fechaHora = date('d/m/Y H:i:s');
+
+            // Si no se proporcionó el nombre del empleado, intentar obtenerlo
+            if (!$empleadoNombre) {
+                $sqlNombre = "SELECT Nombre as NombreCompleto FROM EMP_EMPLEADOS WHERE ID = :empleadoId";
+                $resultNombre = $this->query($sqlNombre, [':empleadoId' => $empleadoId]);
+                $empleadoNombre = $resultNombre['data'][0]['NombreCompleto'] ?? 'Empleado ID: ' . $empleadoId;
+            }
+
+            // Construir HTML de campos modificados
+            $camposHtml = '';
+            if (!empty($camposModificados)) {
+                $camposHtml = "<div class='field'><span class='label'>Campos Modificados:</span><ul style='margin: 5px 0; padding-left: 20px;'>";
+                foreach ($camposModificados as $campo => $valor) {
+                    $camposHtml .= "<li><strong>" . htmlspecialchars($campo) . ":</strong> " . htmlspecialchars($valor) . "</li>";
+                }
+                $camposHtml .= "</ul></div>";
+            }
+
             // Contenido del correo
             $mail->isHTML(true);
-            $mail->Subject = 'Solicitud de Actualización de Datos - ' . ($data['tipoSolicitud'] ?? 'N/A');
+            $mail->Subject = 'Alerta: Modificación de ' . $seccion . ' - ' . $empleadoNombre;
 
             // Construir el cuerpo del mensaje
             $htmlBody = "
@@ -146,85 +188,171 @@ class EmpleadosModel extends Model
                 <style>
                     body { font-family: Arial, sans-serif; }
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background-color: #4CAF50; color: white; padding: 10px; text-align: center; }
-                    .content { padding: 20px; background-color: #f9f9f9; }
-                    .field { margin: 10px 0; }
-                    .label { font-weight: bold; color: #333; }
+                    .header { background-color: #FF9800; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+                    .content { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
+                    .field { margin: 15px 0; padding: 10px; background-color: white; border-left: 3px solid #FF9800; }
+                    .label { font-weight: bold; color: #333; display: block; margin-bottom: 5px; }
                     .value { color: #666; }
+                    .alert-box { background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 5px; }
+                    .footer { margin-top: 20px; padding: 15px; background-color: #f1f1f1; text-align: center; font-size: 12px; color: #666; }
+                    ul { color: #666; }
                 </style>
             </head>
             <body>
                 <div class='container'>
                     <div class='header'>
-                        <h2>Solicitud de Actualización de Datos</h2>
+                        <h2>⚠️ ALERTA DE MODIFICACIÓN DE DATOS</h2>
                     </div>
                     <div class='content'>
-                        <div class='field'>
-                            <span class='label'>Empleado ID:</span>
-                            <span class='value'>" . htmlspecialchars($data['empleadoId'] ?? 'N/A') . "</span>
+                        <div class='alert-box'>
+                            <strong>Se ha modificado información de un empleado en el sistema.</strong>
                         </div>
+                        
                         <div class='field'>
-                            <span class='label'>Nombre:</span>
-                            <span class='value'>" . htmlspecialchars($data['empleadoNombre'] ?? 'N/A') . "</span>
+                            <span class='label'>Empleado:</span>
+                            <span class='value'>" . htmlspecialchars($empleadoNombre) . "</span>
                         </div>
+                        
                         <div class='field'>
-                            <span class='label'>Tipo de Solicitud:</span>
-                            <span class='value'>" . htmlspecialchars($data['tipoSolicitud'] ?? 'N/A') . "</span>
+                            <span class='label'>ID Empleado:</span>
+                            <span class='value'>" . htmlspecialchars($empleadoId) . "</span>
                         </div>
+                        
                         <div class='field'>
-                            <span class='label'>Campo a Actualizar:</span>
-                            <span class='value'>" . htmlspecialchars($data['campoActualizar'] ?? 'N/A') . "</span>
+                            <span class='label'>Sección Modificada:</span>
+                            <span class='value'><strong>" . htmlspecialchars($seccion) . "</strong></span>
                         </div>
+                        
+                        " . $camposHtml . "
+                        
                         <div class='field'>
-                            <span class='label'>Valor Correcto:</span>
-                            <span class='value'>" . htmlspecialchars($data['valorCorrecto'] ?? 'N/A') . "</span>
+                            <span class='label'>Modificado por:</span>
+                            <span class='value'>" . htmlspecialchars($usuarioModificador) . "</span>
                         </div>
+                        
                         <div class='field'>
-                            <span class='label'>Motivo:</span>
-                            <span class='value'>" . htmlspecialchars($data['motivo'] ?? 'N/A') . "</span>
+                            <span class='label'>Fecha y Hora:</span>
+                            <span class='value'>" . $fechaHora . "</span>
                         </div>
-                        <div class='field'>
-                            <span class='label'>Fecha de Solicitud:</span>
-                            <span class='value'>" . htmlspecialchars($data['fechaSolicitud'] ?? 'N/A') . "</span>
+                        
+                        <div class='alert-box'>
+                            <strong>Acción Requerida:</strong><br>
+                            Por favor, valide la información editada en el sistema para verificar que los cambios sean correctos y estén autorizados.
                         </div>
+                    </div>
+                    <div class='footer'>
+                        Este es un mensaje automático del Sistema de Gestión SGO.<br>
+                        No responda a este correo.
                     </div>
                 </div>
             </body>
             </html>
             ";
 
+            // Construir texto plano de campos modificados
+            $camposTexto = '';
+            if (!empty($camposModificados)) {
+                $camposTexto = "\nCampos Modificados:\n";
+                foreach ($camposModificados as $campo => $valor) {
+                    $camposTexto .= "  - " . $campo . ": " . $valor . "\n";
+                }
+            }
+
             $mail->Body = $htmlBody;
-            $mail->AltBody = "Solicitud de Actualización de Datos\n\n" .
-                "Empleado ID: " . ($data['empleadoId'] ?? 'N/A') . "\n" .
-                "Nombre: " . ($data['empleadoNombre'] ?? 'N/A') . "\n" .
-                "Tipo: " . ($data['tipoSolicitud'] ?? 'N/A') . "\n" .
-                "Campo: " . ($data['campoActualizar'] ?? 'N/A') . "\n" .
-                "Valor: " . ($data['valorCorrecto'] ?? 'N/A') . "\n" .
-                "Motivo: " . ($data['motivo'] ?? 'N/A') . "\n" .
-                "Fecha: " . ($data['fechaSolicitud'] ?? 'N/A');
+            $mail->AltBody = "ALERTA DE MODIFICACIÓN DE DATOS\n\n" .
+                "Empleado: " . $empleadoNombre . "\n" .
+                "ID Empleado: " . $empleadoId . "\n" .
+                "Sección Modificada: " . $seccion . "\n" .
+                $camposTexto .
+                "Modificado por: " . $usuarioModificador . "\n" .
+                "Fecha y Hora: " . $fechaHora . "\n\n" .
+                "Por favor, valide la información editada en el sistema.";
 
             // Enviar correo
             $mail->send();
 
             return [
                 'success' => true,
-                'message' => 'Solicitud enviada correctamente',
-                'data' => [
-                    'empleadoId' => $data['empleadoId'] ?? null,
-                    'tipoSolicitud' => $data['tipoSolicitud'] ?? null,
-                    'fechaSolicitud' => $data['fechaSolicitud'] ?? null
-                ]
+                'message' => 'Alerta enviada correctamente'
             ];
 
         } catch (Exception $e) {
-            $this->logError("Error en SolicitudActualizacionDatos: " . $e->getMessage());
-            error_log("Exception in SolicitudActualizacionDatos: " . $e->getMessage());
+            $this->logError("Error en enviarAlertaCambio: " . $e->getMessage());
+            error_log("Exception in enviarAlertaCambio: " . $e->getMessage());
             return [
                 'success' => false,
-                'error' => 'Error al enviar la solicitud: ' . $mail->ErrorInfo
+                'error' => 'Error al enviar la alerta: ' . $mail->ErrorInfo
             ];
         }
     }
+
+
+
+
+    // function ActualizarDatosPersonales($data = [])
+    // {
+    //     try {
+    //         // Desactivar transacciones implícitas
+    //         $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
+
+    //         $sql = "UPDATE EMP_EMPLEADOS 
+    //                 SET Dirección = :direccion, 
+    //                     EstadoCivil = :estadoCivil, 
+    //                     Teléfono3 = :telefono, 
+    //                     email = :email,
+    //                     FechaNac = :fechaNac
+    //                 WHERE ID = :empleadoId";
+
+    //         $params = [
+
+    //             ':empleadoId' => $data['empleadoId'] ?? null,
+    //             ':direccion' => $data['Dirección'] ?? null,
+    //             ':estadoCivil' => $data['EstadoCivil'] ?? null,
+    //             ':telefono' => $data['Teléfono3'] ?? null,
+    //             ':email' => $data['email'] ?? null,
+    //             ':fechaNac' => $data['FechaNac'] ?? null
+    //         ];
+
+    //         // IMPORTANTE: Usar execute() para que se guarden los cambios
+    //         $this->db->execute($sql, $params);
+
+    //         // Preparar campos modificados para el email
+    //         $camposModificados = [];
+    //         if (isset($data['Dirección']))
+    //             $camposModificados['Dirección'] = $data['Dirección'];
+    //         if (isset($data['EstadoCivil']))
+    //             $camposModificados['Estado Civil'] = $data['EstadoCivil'];
+    //         if (isset($data['Teléfono3']))
+    //             $camposModificados['Teléfono'] = $data['Teléfono3'];
+    //         if (isset($data['email']))
+    //             $camposModificados['Email'] = $data['email'];
+    //         if (isset($data['FechaNac']))
+    //             $camposModificados['Fecha de Nacimiento'] = $data['FechaNac'];
+
+    //         // Enviar alerta de cambio
+    //         $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+    //         $this->enviarAlertaCambio(
+    //             $data['empleadoId'],
+    //             'Información Personal',
+    //             $usuarioModificador,
+    //             null,
+    //             $camposModificados
+    //         );
+
+    //         return [
+    //             'success' => true,
+    //             'message' => 'Datos actualizados correctamente PERSONALES'
+    //         ];
+
+    //     } catch (Exception $e) {
+    //         $this->logError("Error en ActualizarDatosPersonales: " . $e->getMessage());
+    //         error_log("Exception in ActualizarDatosPersonales: " . $e->getMessage());
+    //         return [
+    //             'success' => false,
+    //             'error' => 'Error al actualizar: ' . $e->getMessage()
+    //         ];
+    //     }
+    // }
 
 
 
@@ -235,50 +363,113 @@ class EmpleadosModel extends Model
             // Desactivar transacciones implícitas
             $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
 
-            $sql = "UPDATE EMP_EMPLEADOS 
-                    SET Dirección = :direccion, 
-                        EstadoCivil = :estadoCivil, 
-                        Teléfono3 = :telefono, 
-                        email = :email,
-                        FechaNac = :fechaNac
-                    WHERE ID = :empleadoId";
+            // ============================
+            //   FORMATEAR FECHA AAAAMMDD
+            // ============================
+            $fechaBruta = $data['FechaNac'] ?? null;
+            $fechaFormateada = null;
 
+            if (!empty($fechaBruta)) {
+
+                // Si viene con hora "2000-04-23 00:00:00.000" → tomamos solo la fecha
+                $soloFecha = explode(' ', $fechaBruta)[0];
+
+                // Reemplazar / por -
+                $soloFecha = str_replace('/', '-', $soloFecha);
+
+                // Convertir a DateTime seguro
+                $fechaObj = DateTime::createFromFormat('Y-m-d', $soloFecha);
+
+                if (!$fechaObj) {
+                    throw new Exception("Formato de fecha inválido: " . $fechaBruta);
+                }
+
+                // Formato FINAL → AAAAMMDD
+                $fechaFormateada = $fechaObj->format('Ymd');
+            }
+
+            // ============================
+            //       STORED PROCEDURE
+            // ============================
+            $sql = "EXEC SGO_EMP_REGISTRO_DATOS_TEMPORAL  
+            :EmpleadoID,
+            :Cedula,
+            :Direccion,
+            :EstadoCivil,
+            :FechaNac,
+            :Jefe,
+            :Nombre,
+            :PDecimos,
+            :PFondos,
+            :Telefono,
+            :Email,
+            :Estado,
+            :documento_estado_civil";
+
+            // Parámetros EXACTOS del SP
             $params = [
-
-                ':empleadoId' => $data['empleadoId'] ?? null,
-                ':direccion' => $data['Dirección'] ?? null,
-                ':estadoCivil' => $data['EstadoCivil'] ?? null,
-                ':telefono' => $data['Teléfono3'] ?? null,
-                ':email' => $data['email'] ?? null,
-                ':fechaNac' => $data['FechaNac'] ?? null
+                ':EmpleadoID' => $data['empleadoId'] ?? null,
+                ':Cedula' => $data['Cedula'] ?? null,
+                ':Direccion' => $data['Dirección'] ?? null,
+                ':EstadoCivil' => $data['EstadoCivil'] ?? null,
+                ':FechaNac' => $fechaFormateada,   // ← FECHA AAAAMMDD
+                ':Jefe' => $data['Jefe'] ?? null,
+                ':Nombre' => $data['Nombre'] ?? null,
+                ':PDecimos' => $data['PDecimos'] ?? null,
+                ':PFondos' => $data['PFondos'] ?? null,
+                ':Telefono' => $data['Teléfono3'] ?? null,
+                ':Email' => $data['email_personal'] ?? null,
+                ':Estado' => $data['Estado'] ?? 0,
+                ':documento_estado_civil' => $data['documento_estado_civil'] ?? null
             ];
 
-            // IMPORTANTE: Usar execute() para que se guarden los cambios
+            // Ejecutar
             $this->db->execute($sql, $params);
+
+            // ============================
+            //      AUDITORÍA / ALERTA
+            // ============================
+            $camposModificados = [];
+            foreach ($params as $campo => $valor) {
+                $nombreCampo = str_replace(":", "", $campo);
+                $camposModificados[$nombreCampo] = $valor;
+            }
+
+            $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+
+            $this->enviarAlertaCambio(
+                $data['empleadoId'],
+                'Validación de Datos Personales',
+                $usuarioModificador,
+                null,
+                $camposModificados
+            );
 
             return [
                 'success' => true,
-                'message' => 'Datos actualizados correctamente PERSONALES'
+                'message' => 'Datos guardados correctamente en validación PERSONAL'
             ];
 
         } catch (Exception $e) {
             $this->logError("Error en ActualizarDatosPersonales: " . $e->getMessage());
-            error_log("Exception in ActualizarDatosPersonales: " . $e->getMessage());
             return [
                 'success' => false,
-                'error' => 'Error al actualizar: ' . $e->getMessage()
+                'error' => 'Error al insertar: ' . $e->getMessage()
             ];
         }
     }
 
 
 
+
     function ActualizarCargasEmpleado($data = [])
     {
         try {
+            // Desactivar transacciones implícitas para asegurar que se guarde
+            $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
 
-            // SQL corregido (cédula con corchetes)
-            $sql = "INSERT INTO EMP_EMPLEADOS_CARGAS 
+            // SQL corregido (Sin Ocupación)
+            $sql = "INSERT INTO EMP_EMPLEADOS_CARGAS_PREVIA
         (
             EmpleadoID,
             Edad,
@@ -289,10 +480,11 @@ class EmpleadosModel extends Model
             CreadoPor,
             CreadoDate,
             FechaNacimiento,
-            [cédula],
+            Cedula,
             TipoCarga,
             Carga,
-            Ocupación
+            Archivo_Cedula,
+            Tipo_solicitud
         )
         VALUES
         (
@@ -308,7 +500,8 @@ class EmpleadosModel extends Model
             :cedula,
             :TipoCarga,
             1,
-            ''
+            :documento_carga,
+            'cargas'
         )";
 
             // Parámetros
@@ -318,18 +511,47 @@ class EmpleadosModel extends Model
                 ':Sexo' => $data['Sexo'] ?? null,
                 ':Nombres' => $data['Nombres'] ?? null,
                 ':FechaNacimiento' => $data['FechaNacimiento'] ?? null,
-                ':cedula' => $data['cédula'] ?? null, // parámetro SIN tilde
+                ':cedula' => $data['cedula'] ?? null,
                 ':TipoCarga' => $data['TipoCarga'] ?? null,
                 ':Creado_Por' => $data['Creado_Por'] ?? 'SISTEMA',
+                ':documento_carga' => $data['documento_carga'] ?? null,
             ];
 
             // Ejecutar
             $rows = $this->db->execute($sql, $params);
 
+            // Asegurar commit explícito
+            $this->query("COMMIT");
+
             // Validar si sí insertó
             if ($rows <= 0) {
                 throw new Exception("El INSERT no insertó ninguna fila. Verifique los datos enviados.");
             }
+
+            // Preparar campos modificados para el email
+            $camposModificados = [];
+            if (isset($data['Nombres']))
+                $camposModificados['Nombre'] = $data['Nombres'];
+            if (isset($data['TipoCarga']))
+                $camposModificados['Tipo de Carga'] = $data['TipoCarga'];
+            if (isset($data['Edad']))
+                $camposModificados['Edad'] = $data['Edad'];
+            if (isset($data['Sexo']))
+                $camposModificados['Sexo'] = $data['Sexo'];
+            if (isset($data['FechaNacimiento']))
+                $camposModificados['Fecha de Nacimiento'] = $data['FechaNacimiento'];
+            if (isset($data['cédula']))
+                $camposModificados['Cédula'] = $data['cédula'];
+
+            // Enviar alerta de cambio
+            $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+            $this->enviarAlertaCambio(
+                $data['empleadoId'],
+                'Cargas Familiares',
+                $usuarioModificador,
+                null,
+                $camposModificados
+            );
 
             return [
                 'success' => true,
@@ -363,7 +585,9 @@ class EmpleadosModel extends Model
             EmpleadoID,
             Titulo,
             Institucion,
-            anio
+            anio,
+            titulo_pdf,
+            Tipo_solicitud
            
         )
         VALUES
@@ -371,7 +595,9 @@ class EmpleadosModel extends Model
             :empleadoId,
             :titulo,
             :institucion,
-            :anio
+            :anio,
+            :titulo_pdf,
+            'estudios'
 
         )";
 
@@ -382,6 +608,7 @@ class EmpleadosModel extends Model
                 ':titulo' => $data['titulo'] ?? null,
                 ':institucion' => $data['institucion'] ?? null,
                 ':anio' => $data['anio'] ?? null,
+                ':titulo_pdf' => $data['titulo_pdf'] ?? null,
 
             ];
 
@@ -418,7 +645,9 @@ class EmpleadosModel extends Model
         try {
 
 
-            $sql = "SELECT * from SGO_EMP_EMPLEADOS_ESTUDIOS
+            $sql = "SELECT  EmpleadoID , institucion ,
+             titulo , anio ,  isnull(titulo_pdf, '') as titulo_pdf 
+			   from SGO_EMP_EMPLEADOS_ESTUDIOS
 				where EmpleadoID = :empleadoId
                 ";
 
@@ -446,28 +675,127 @@ class EmpleadosModel extends Model
 
 
 
+    // function ActualizarEnfermedades($data = [])
+    // {
+    //     try {
+    //         // Desactivar transacciones implícitas
+    //         $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
+
+    //         $sql = "INSERT INTO SGO_EMP_DATOS_MEDICOS_EMPLEADOS
+    //     (
+    //         EmpleadoID,
+    //         alergias,
+    //         tieneAlergia,
+    //         contactoEmergenciaNombre,
+    //         contactoEmergenciaRelacion,
+    //         contactoEmergenciaTelefono,
+    //         tieneEnfermedad,
+    //         enfermedades,
+    //         tieneDiscapacidad,
+    //         porcentajeDiscapacidad,
+    //         tipoDiscapacidad,
+    //         archivoDiscapacidadNombre
+    //     )
+    //     VALUES
+    //     (
+    //         :empleadoId,
+    //         :alergias,
+    //         :tieneAlergia,
+    //         :contactoEmergenciaNombre,
+    //         :contactoEmergenciaRelacion,
+    //         :contactoEmergenciaTelefono,
+    //         :tieneEnfermedad,
+    //         :enfermedades,
+    //         :tieneDiscapacidad,
+    //         :porcentajeDiscapacidad,
+    //         :tipoDiscapacidad,
+    //         :archivoDiscapacidadNombre
+
+    //     )";
+
+    //         $params = [
+
+    //             ':empleadoId' => $data['empleadoId'] ?? null,
+    //             ':alergias' => $data['alergias'] ?? null,
+    //             ':tieneAlergia' => $data['tieneAlergia'] ?? 'NO',
+    //             ':contactoEmergenciaNombre' => $data['contactoEmergenciaNombre'] ?? null,
+    //             ':contactoEmergenciaRelacion' => $data['contactoEmergenciaRelacion'] ?? null,
+    //             ':contactoEmergenciaTelefono' => $data['contactoEmergenciaTelefono'] ?? null,
+    //             ':tieneEnfermedad' => $data['tieneEnfermedad'] ?? 'NO',
+    //             ':enfermedades' => $data['enfermedades'] ?? null,
+    //             ':tieneDiscapacidad' => $data['tieneDiscapacidad'] ?? 'NO',
+    //             ':porcentajeDiscapacidad' => $data['porcentajeDiscapacidad'] ?? null,
+    //             ':tipoDiscapacidad' => $data['tipoDiscapacidad'] ?? null,
+    //             ':archivoDiscapacidadNombre' => $data['archivoDiscapacidadNombre'] ?? null
+
+    //         ];
+
+    //         $rows = $this->db->execute($sql, $params);
+
+    //         // Asegurar commit explícito
+    //         $this->query("COMMIT");
+
+    //         if ($rows <= 0) {
+    //             throw new Exception("El INSERT no insertó ninguna fila.");
+    //         }
+
+    //         // --- AUDITORÍA DE CAMBIOS ---
+    //         $camposModificados = [];
+    //         foreach ($params as $campo => $valor) {
+    //             $nombreCampo = str_replace(":", "", $campo);
+    //             $camposModificados[$nombreCampo] = $valor;
+    //         }
+
+    //         $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+
+    //         $this->enviarAlertaCambio(
+    //             $data['empleadoId'],
+    //             'Actualización de Datos Médicos',
+    //             $usuarioModificador,
+    //             null,
+    //             $camposModificados
+    //         );
+
+    //         return [
+    //             'success' => true,
+    //             'message' => 'Datos médicos guardados correctamente'
+    //         ];
+
+    //     } catch (Exception $e) {
+
+    //         $this->logError("Error en ActualizarEnfermedades: " . $e->getMessage());
+
+    //         return [
+    //             'success' => false,
+    //             'error' => $e->getMessage(),
+    //             'debug' => $data
+    //         ];
+    //     }
+    // }
+
+
+
     function ActualizarEnfermedades($data = [])
     {
         try {
+            // Desactivar transacciones implícitas
+            $this->query("SET IMPLICIT_TRANSACTIONS OFF", []);
 
-            $sql = "INSERT INTO SGO_EMP_DATOS_MEDICOS_EMPLEADOS
-        (
-            EmpleadoID,
-            alergias,
-            contactoEmergenciaNombre,
-            contactoEmergenciaRelacion,
-            contactoEmergenciaTelefono,
-            enfermedades
-        )
-        VALUES
-        (
+            $sql = "EXEC SGO_EMP_DATOS_MEDICOS_EMPLEADOS2
             :empleadoId,
             :alergias,
             :contactoEmergenciaNombre,
             :contactoEmergenciaRelacion,
             :contactoEmergenciaTelefono,
-            :enfermedades
-        )";
+            :enfermedades,
+            :Editado,
+            :tieneAlergia,
+            :tieneEnfermedad,
+            :tieneDiscapacidad,
+            :porcentajeDiscapacidad,
+            :tipoDiscapacidad,
+            :archivoDiscapacidadNombre
+        ";
 
             $params = [
                 ':empleadoId' => $data['empleadoId'] ?? null,
@@ -476,20 +804,49 @@ class EmpleadosModel extends Model
                 ':contactoEmergenciaRelacion' => $data['contactoEmergenciaRelacion'] ?? null,
                 ':contactoEmergenciaTelefono' => $data['contactoEmergenciaTelefono'] ?? null,
                 ':enfermedades' => $data['enfermedades'] ?? null,
+                ':Editado' => $data['Editado'],
+                ':tieneAlergia' => $data['tieneAlergia'] ?? 0,
+                ':tieneEnfermedad' => $data['tieneEnfermedad'] ?? 0,
+                ':tieneDiscapacidad' => $data['tieneDiscapacidad'] ?? 0,
+                ':porcentajeDiscapacidad' => $data['porcentajeDiscapacidad'] ?? null,
+                ':tipoDiscapacidad' => $data['tipoDiscapacidad'] ?? null,
+                ':archivoDiscapacidadNombre' => $data['archivoDiscapacidadNombre'] ?? null,
             ];
 
             $rows = $this->db->execute($sql, $params);
 
+            // Asegurar commit explícito
+            $this->query("COMMIT");
+
             if ($rows <= 0) {
-                throw new Exception("El INSERT no insertó ninguna fila.");
+                throw new Exception("La operación no afectó ninguna fila.");
             }
+
+            // --- AUDITORÍA DE CAMBIOS ---
+            $camposModificados = [];
+            foreach ($params as $campo => $valor) {
+                $nombreCampo = str_replace(":", "", $campo);
+                $camposModificados[$nombreCampo] = $valor;
+            }
+
+            $usuarioModificador = $data['Creado_Por'] ?? 'Sistema';
+
+            $this->enviarAlertaCambio(
+                $data['empleadoId'],
+                'Actualización de Datos Médicos',
+                $usuarioModificador,
+                null,
+                $camposModificados
+            );
 
             return [
                 'success' => true,
-                'message' => 'Datos médicos guardados correctamente'
+                'message' => ($data['Editado'] == 1 ? 'Datos médicos actualizados' : 'Datos médicos insertados')
             ];
 
         } catch (Exception $e) {
+
+            $this->logError("Error en ActualizarEnfermedades: " . $e->getMessage());
 
             return [
                 'success' => false,
@@ -530,4 +887,561 @@ class EmpleadosModel extends Model
             ];
         }
     }
+
+
+
+    function ConsultarRolesPago($data = [])
+    {
+        try {
+            // Recibimos fecha YYYYMMDD → ejemplo: 20250601
+            $fecha = $data['fecha'];
+
+            // Convertimos a DateTime
+            $dt = DateTime::createFromFormat('Ymd', $fecha);
+
+            // Primer día del mes (ya viene así, pero se normaliza)
+            $inicioMes = $dt->format('Ymd');
+
+            // Calcular último día del mes
+            $ultimoDiaMes = $dt->format('Ymt');  // <-- Ymt = AñoMesÚltimoDía
+
+            // Consulta SQL con formato correcto
+            $sql = "SELECT r.Fecha, ep.RolID, ep.EmpleadoID
+                FROM EMP_ROLES r
+                INNER JOIN EMP_ROLES_EMPLEADOS ep ON r.ID = ep.RolID
+                WHERE ep.EmpleadoID = :empleadoId
+                AND r.Fecha >= :inicio
+                AND r.Fecha <= :fin";
+
+            $params = [
+                ':empleadoId' => $data['empleadoId'],
+                ':inicio' => $inicioMes,       // YYYYMM01
+                ':fin' => $ultimoDiaMes        // YYYYMMDD (último día del mes)
+            ];
+
+            return $this->query($sql, $params);
+
+        } catch (Exception $e) {
+            $this->logError("Error en ConsultarRolesPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function detalle($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT
+            rr.DocumentoID,
+            rr.Tipo as Clase,
+            rub.Nombre as Detalle,
+            CASE WHEN rr.Tipo = 'Ingreso' THEN rr.Calculado ELSE 0 END as Ingreso,
+            CASE WHEN rr.Tipo = 'Egreso' THEN rr.Valor ELSE 0 END as Egreso,
+            CASE WHEN rr.DocumentoID = '' THEN rub.Nombre ELSE de.Detalle END as Detalle,
+            ISNULL(de.Tipo,'') as Tipo ,
+            de.DocumentoID as Referencia
+            FROM EMP_ROLES_RUBROS rr
+            JOIN EMP_RUBROS rub ON rr.RubroID = rub.ID
+            LEFT JOIN EMP_EMPLEADOS_DEUDAS de ON de.ID = rr.DocumentoID
+            WHERE rr.RolID = :rolId AND rr.Tipo <> 'Provision'
+            ORDER BY LEN(Detalle) ASC, Ingreso DESC, Egreso ASC";
+
+            $params = [
+
+                ':rolId' => $data['rolId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en DescargarRolPago: " . $e->getMessage());
+            error_log("Exception in DescargarRolPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function cabecera($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT 
+                Detalle as Concepto , 
+                ID, 
+                Fecha , 
+                Ingresos as Ingreso_Total, 
+                Egresos as Egreso_Total, 
+                Total as Valor_Neto 
+                from EMP_ROLES 
+                where ID = :rolId";
+
+            $params = [
+
+                ':rolId' => $data['rolId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en DescargarRolPago: " . $e->getMessage());
+            error_log("Exception in DescargarRolPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function GenerarPDFRolPago($data = [])
+    {
+        try {
+
+
+            $sql = "SELECT
+            rr.DocumentoID,
+            rr.Tipo as Clase,
+            rub.Nombre as Detalle,
+            CASE WHEN rr.Tipo = 'Ingreso' THEN rr.Calculado ELSE 0 END as Ingreso,
+            CASE WHEN rr.Tipo = 'Egreso' THEN rr.Valor ELSE 0 END as Egreso,
+            CASE WHEN rr.DocumentoID = '' THEN rub.Nombre ELSE de.Detalle END as Detalle,
+            ISNULL(de.Tipo,'') as Tipo ,
+            de.DocumentoID as Referencia
+            FROM EMP_ROLES_RUBROS rr
+            JOIN EMP_RUBROS rub ON rr.RubroID = rub.ID
+            LEFT JOIN EMP_EMPLEADOS_DEUDAS de ON de.ID = rr.DocumentoID
+            WHERE rr.RolID = :rolId AND rr.Tipo <> 'Provision'
+            ORDER BY LEN(Detalle) ASC, Ingreso DESC, Egreso ASC";
+
+            $params = [
+
+                ':rolId' => $data['rolId'] ?? null,
+
+            ];
+
+            $stmt = $this->query($sql, $params);
+
+
+            return $stmt;
+
+        } catch (Exception $e) {
+            $this->logError("Error en DescargarRolPago: " . $e->getMessage());
+            error_log("Exception in DescargarRolPago: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+
+    function generarPDF($rolId)
+    {
+        try {
+
+            // Obtener los datos (LOS MÉTODOS ESPERAN ARRAY)
+            $cabeceraResult = $this->cabecera(['rolId' => $rolId]);
+            $detalleResult = $this->detalle(['rolId' => $rolId]);
+
+            if (empty($cabeceraResult['data']) || empty($detalleResult['data'])) {
+                return ['success' => false, 'error' => 'No se encontraron datos para el Rol ID: ' . $rolId];
+            }
+
+            $row = $cabeceraResult['data'][0];
+            $cuerpo = $detalleResult['data'];
+
+            // Crear PDF
+            $pdf = new \FPDF();
+            $pdf->AddPage();
+            $pdf->SetFont('Arial', '', 10);
+
+            // LOGO
+            $pdf->Image('https://ww.nexxtsolutions.com/wp-content/uploads/2019/02/01-Cartimex-244x122.png', 7, 3, 40);
+
+            // TÍTULO DERECHA
+            $pdf->SetXY(120, 10);
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(77, 9, '  ROL DE PAGO NO: ' . $row['ID'], 0, 0, 'R');
+            $pdf->Ln(15);
+
+            // CABECERA PRINCIPAL
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(120, 6, "Concepto", 'L,T', 0, 'L');
+            $pdf->Cell(25, 6, "ID", 'T', 0, 'C');
+            $pdf->Cell(43, 6, "Fecha", 'T,R', 0, 'C');
+            $pdf->Ln();
+
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->Cell(120, 5, utf8_decode($row["Concepto"]), 'L,B', 0, 'L');
+            $pdf->Cell(25, 5, $row["ID"], 'B', 0, 'C');
+            $pdf->Cell(43, 5, date('d/m/Y', strtotime($row["Fecha"])), 'B,R', 0, 'C');
+            $pdf->Ln(10);
+
+            // ENCABEZADO DETALLE
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(19, 5, "Clase", 0, 0, 'C');
+            $pdf->Cell(19, 5, "Tipo", 0, 0, 'C');
+            $pdf->Cell(19, 5, "Ref", 0, 0, 'C');
+            $pdf->Cell(90, 5, "Detalle", 0, 0, 'C');
+            $pdf->Cell(20, 5, "Ingreso", 0, 0, 'R');
+            $pdf->Cell(21, 5, "Egreso", 0, 0, 'R');
+            $pdf->Ln(6);
+
+            // Línea gris suave
+            $pdf->SetDrawColor(200, 200, 200);
+            $pdf->Line(10, $pdf->GetY(), 200, $pdf->GetY());
+            $pdf->Ln(2);
+
+            // CUERPO DETALLE
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetDrawColor(220, 220, 220); // gris suave entre filas
+
+            foreach ($cuerpo as $item) {
+
+                $detalleTexto = utf8_decode($item["Detalle"]);
+                $ingreso = "$" . number_format($item["Ingreso"], 2);
+                $egreso = "$" . number_format($item["Egreso"], 2);
+
+                // Imprimir fila sin bordes
+                $pdf->Cell(19, 5, $item["Clase"], 0, 0, 'C');
+                $pdf->Cell(19, 5, $item["Tipo"], 0, 0, 'C');
+                $pdf->Cell(19, 5, $item["Referencia"], 0, 0, 'L');
+
+                // DETALLE LARGO
+                if (strlen($detalleTexto) > 50) {
+                    $lineas = explode("\n", wordwrap($detalleTexto, 50, "\n"));
+                    $pdf->Cell(90, 5, $lineas[0], 0, 0, 'L');
+                    $pdf->Cell(20, 5, $ingreso, 0, 0, 'R');
+                    $pdf->Cell(21, 5, $egreso, 0, 0, 'R');
+                    $pdf->Ln();
+
+                    for ($j = 1; $j < count($lineas); $j++) {
+                        $pdf->Cell(57, 4, "");
+                        $pdf->Cell(90, 4, $lineas[$j], 0, 0, 'L');
+                        $pdf->Ln();
+                    }
+                } else {
+                    $pdf->Cell(90, 5, $detalleTexto, 0, 0, 'L');
+                    $pdf->Cell(20, 5, $ingreso, 0, 0, 'R');
+                    $pdf->Cell(21, 5, $egreso, 0, 0, 'R');
+                    $pdf->Ln();
+                }
+
+                // Línea gris separadora
+                $pdf->SetDrawColor(210, 210, 210);
+                $pdf->Line(10, $pdf->GetY(), 200, $pdf->GetY());
+            }
+
+            // TOTALES
+            $pdf->Ln(8);
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(150, 7, "", 0, 0, 'C');
+            $pdf->Cell(20, 7, '$' . number_format($row["Ingreso_Total"], 2), 0, 0, 'R');
+            $pdf->Cell(20, 7, '$' . number_format($row["Egreso_Total"], 2), 0, 0, 'R');
+            $pdf->Ln(15);
+
+            // VALOR NETO
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(0, 8, "Valor Neto a Recibir:     $" . number_format($row["Valor_Neto"], 2), 0, 1, 'C');
+
+            // PIE DE FIRMA
+            $pdf->Ln(15);
+            $pdf->SetFont('Times', 'BI', 12);
+            $pdf->Cell(0, 10, 'Documento Generado Electronica­mente', 0, 1, 'L');
+
+            // PDF EN MEMORIA
+            $pdfBinary = $pdf->Output('S');
+
+            return ['success' => true, 'pdfData' => $pdfBinary, 'rolId' => $row["ID"]];
+
+        } catch (Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+
+
+
+
+
+    function ActualizarPassword($data = [])
+    {
+        try {
+            $empleadoId = $data['empleadoId'] ?? null;
+            $currentPassword = $data['currentPassword'] ?? null;
+            $newPassword = $data['newPassword'] ?? null;
+
+            if (!$empleadoId || !$currentPassword || !$newPassword) {
+                return [
+                    'success' => false,
+                    'error' => 'Faltan datos requeridos (ID, contraseña actual o nueva)'
+                ];
+            }
+
+            // 1. Verificar la contraseña actual
+            $sqlCheck = "SELECT clave FROM SERIESUSR WHERE EmpleadoID = :empleadoId";
+            $resultCheck = $this->query($sqlCheck, [':empleadoId' => $empleadoId]);
+
+            if (empty($resultCheck['data'])) {
+                return [
+                    'success' => false,
+                    'error' => 'Usuario no encontrado'
+                ];
+            }
+
+            $storedPassword = $resultCheck['data'][0]['clave'];
+
+            // Comparación (usando la misma lógica que LoginModel: strtolower)
+            if (strtolower($currentPassword) !== strtolower($storedPassword)) {
+                return [
+                    'success' => false,
+                    'error' => 'La contraseña actual es incorrecta'
+                ];
+            }
+
+            // 2. Actualizar la contraseña
+            $sql = "UPDATE SERIESUSR 
+                SET clave = :newPassword
+                WHERE EmpleadoID = :empleadoId";
+
+            $params = [
+                ':empleadoId' => $empleadoId,
+                ':newPassword' => $newPassword
+            ];
+
+            // Usar execute para UPDATE, no query
+            $rows = $this->db->execute($sql, $params);
+
+            // Si llega aquí es que no hubo excepción
+            return [
+                'success' => true,
+                'message' => 'Contraseña actualizada correctamente',
+                'rowsAffected' => $rows
+            ];
+
+
+        } catch (Exception $e) {
+            $this->logError("Error en ActualizarPassword: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function SubirFotoPerfil($data = [])
+    {
+        try {
+            $sql = "UPDATE EMP_EMPLEADOS SET foto_perfil = :name
+            where ID = :empleadoId";
+
+            $params = [
+                ':empleadoId' => $data['empleadoId'] ?? null,
+                ':name' => $data['name'] ?? null,
+            ];
+
+            // Usar execute para UPDATE, no query
+            $rows = $this->db->execute($sql, $params);
+
+            return [
+                'success' => true,
+                'message' => 'Foto actualizada correctamente',
+                'rowsAffected' => $rows
+            ];
+
+        } catch (Exception $e) {
+            $this->logError("Error en SubirFotoPerfil: " . $e->getMessage());
+            error_log("Exception in SubirFotoPerfil: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+
+    function ActualizarEstudios2($data = [])
+    {
+        try {
+            $sql = "UPDATE SGO_EMP_EMPLEADOS_ESTUDIOS SET 
+            titulo = :titulo,
+            institucion = :institucion,
+            anio = :anio,
+            titulo_pdf = :titulo_pdf
+            WHERE EmpleadoID = :empleadoId";
+
+            $params = [
+                ':empleadoId' => $data['empleadoId'] ?? null,
+                ':titulo' => $data['titulo'] ?? null,
+                ':institucion' => $data['institucion'] ?? null,
+                ':anio' => $data['anio'] ?? null,
+                ':titulo_pdf' => $data['titulo_pdf'] ?? null
+            ];
+
+            // Usar execute para UPDATE, no query
+            $rows = $this->db->execute($sql, $params);
+
+            return [
+                'success' => true,
+                'message' => 'Estudio actualizado correctamente',
+                'rowsAffected' => $rows
+            ];
+
+        } catch (Exception $e) {
+            $this->logError("Error en ActualizarEstudios2: " . $e->getMessage());
+            error_log("Exception in ActualizarEstudios2: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    // function generarPDF($rolId)
+    // {
+    //     try {
+    //         // require_once("fpdf/fpdf.php"); // Eliminado
+
+    //         // OBTENER DATOS
+    //         // Pasamos un array como espera el método
+    //         $cabeceraResult = $this->cabecera(['rolId' => $rolId]);
+    //         $detalleResult = $this->detalle(['rolId' => $rolId]);
+
+    //         // Verificar si obtuvimos datos
+    //         if (empty($cabeceraResult['data']) || empty($detalleResult['data'])) {
+    //             return ['success' => false, 'error' => 'No se encontraron datos para el Rol ID: ' . $rolId];
+    //         }
+
+    //         $row = $cabeceraResult['data'][0];
+    //         $cuerpo = $detalleResult['data'];
+
+    //         // DIRECTORIO DE SALIDA
+    //         $carpeta = "roles_generados";
+    //         if (!file_exists($carpeta)) {
+    //             mkdir($carpeta, 0777, true);
+    //         }
+
+    //         $pdf = new \FPDF();
+    //         $pdf->AddPage();
+    //         $pdf->SetFont('Arial', '', 10);
+
+    //         // LOGO
+    //         $pdf->Image('https://ww.nexxtsolutions.com/wp-content/uploads/2019/02/01-Cartimex-244x122.png', 7, 3, 40);
+
+    //         // TITULO DERECHA
+    //         $pdf->SetXY(120, 10);
+    //         $pdf->SetFont('Arial', 'B', 10);
+    //         $pdf->Cell(77, 9, '  ROL DE PAGO NO: ' . $row['ID'], 0, 0, 'R');
+    //         $pdf->Ln();
+
+    //         // CABECERA
+    //         $pdf->SetFont('Arial', 'B', 10);
+    //         $pdf->Cell(120, 6, "Concepto", 'L,T', 0, 'L');
+    //         $pdf->Cell(25, 6, "ID", 'T', 0, 'C');
+    //         $pdf->Cell(43, 6, "Fecha", 'T,R', 0, 'C');
+    //         $pdf->Ln();
+
+    //         $pdf->SetFont('Arial', '', 8);
+    //         $pdf->Cell(120, 5, utf8_decode($row["Concepto"]), 'L,B', 0, 'L');
+    //         $pdf->Cell(25, 5, $row["ID"], 'B', 0, 'C');
+    //         $pdf->Cell(43, 5, date('d/m/Y', strtotime($row["Fecha"])), 'B,R', 0, 'C');
+    //         $pdf->Ln(10);
+
+    //         // ENCABEZADO DETALLE
+    //         $pdf->SetFont('Arial', 'B', 9);
+    //         $pdf->Cell(19, 5, "Clase", 'B,T,L', 0, 'C');
+    //         $pdf->Cell(19, 5, "Tipo", 'B,T', 0, 'C');
+    //         $pdf->Cell(19, 5, "Ref", 'B,T', 0, 'C');
+    //         $pdf->Cell(90, 5, "Detalle", 'B,T', 0, 'C');
+    //         $pdf->Cell(20, 5, "Ingreso", 'B,T', 0, 'R');
+    //         $pdf->Cell(21, 5, "Egreso", 'B,T,R', 0, 'R');
+    //         $pdf->Ln(7);
+
+    //         // CUERPO
+    //         $pdf->SetFont('Arial', '', 8);
+
+    //         foreach ($cuerpo as $item) {
+    //             $detalleTexto = utf8_decode($item["Detalle"]);
+    //             $ingreso = "$" . number_format($item["Ingreso"], 2);
+    //             $egreso = "$" . number_format($item["Egreso"], 2);
+
+    //             $pdf->Cell(19, 5, $item["Clase"], 1, 0, 'C');
+    //             $pdf->Cell(19, 5, $item["Tipo"], 1, 0, 'C');
+    //             $pdf->Cell(19, 5, $item["Referencia"], 1, 0, 'L');
+
+    //             // DETALLE LARGO
+    //             if (strlen($detalleTexto) > 50) {
+    //                 $lineas = explode("\n", wordwrap($detalleTexto, 50, "\n"));
+    //                 $pdf->Cell(90, 5, $lineas[0], 1, 0, 'L');
+    //                 $pdf->Cell(20, 5, $ingreso, 1, 0, 'R');
+    //                 $pdf->Cell(21, 5, $egreso, 1, 0, 'R');
+    //                 $pdf->Ln();
+
+    //                 for ($j = 1; $j < count($lineas); $j++) {
+    //                     $pdf->Cell(57, 4, "", 0, 0);
+    //                     $pdf->Cell(90, 4, $lineas[$j], 1, 0, 'L');
+    //                     $pdf->Ln();
+    //                 }
+    //             } else {
+    //                 $pdf->Cell(90, 5, $detalleTexto, 1, 0, 'L');
+    //                 $pdf->Cell(20, 5, $ingreso, 1, 0, 'R');
+    //                 $pdf->Cell(21, 5, $egreso, 1, 0, 'R');
+    //                 $pdf->Ln();
+    //             }
+    //         }
+
+    //         // TOTALES
+    //         $pdf->Ln(5);
+    //         $pdf->SetFont('Arial', 'B', 9);
+    //         $pdf->Cell(150, 7, "", 'T,R', 0, 'C');
+    //         $pdf->Cell(20, 7, '$' . number_format($row["Ingreso_Total"], 2), 1, 0, 'R');
+    //         $pdf->Cell(20, 7, '$' . number_format($row["Egreso_Total"], 2), 1, 0, 'R');
+    //         $pdf->Ln(15);
+
+    //         // VALOR NETO
+    //         $pdf->SetFont('Arial', 'B', 10);
+    //         $pdf->Cell(0, 8, "Valor Neto a Recibir:     $" . number_format($row["Valor_Neto"], 2), 0, 0, 'C');
+    //         $pdf->Ln(20);
+
+    //         // FIRMA
+    //         $pdf->SetFont('Times', 'BI', 12);
+    //         $pdf->Cell(0, 10, 'Documento Generado Electronicamente', 0, 1, 'L');
+
+    //         // GENERAR PDF EN MEMORIA (no guardar en archivo)
+    //         $pdfBinary = $pdf->Output('S'); // 'S' devuelve el PDF como string
+
+    //         return ['success' => true, 'pdfData' => $pdfBinary, 'rolId' => $row["ID"]];
+
+    //     } catch (Exception $e) {
+    //         return ['success' => false, 'error' => $e->getMessage()];
+    //     }
+    // }
 }
