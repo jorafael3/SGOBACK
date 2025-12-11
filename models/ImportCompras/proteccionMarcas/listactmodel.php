@@ -323,7 +323,7 @@ class listactModel extends Model
                         ':ID_Marca' => $ACTIVIDAD_ID,
                     ];
                     $query = $this->db->execute($SQLU, $param);
-                    if (!$query->execute()) {
+                    if (!$query) {
                         $err = $query->errorInfo();
                         array_push($ACTUALIZADO_ERRO, [$DATOS[$i], $err]);
                     }
@@ -346,7 +346,7 @@ class listactModel extends Model
                     $ACTUALIZADO_ERRO = [];
                     #TODO: Aqui se usa el ACTIVIDAD_ID desde el crear
                     for ($i = 0; $i < count($DATOS); $i++) {
-                        $ACTIVIDAD_ID = $DATOS[$i]["ACTIVIDAD_ID"];
+                        $ACTIVIDAD_ID = $DATOS[$i]["ACTIVIDAD_ID"] ?? $datos["ACTIVIDAD_ID"];
                         $SQLU = "UPDATE SGO_Actividades_Marcas SET
                                 consolidado = 1,
                                 consolidado_id = :consolidado_id
@@ -550,16 +550,18 @@ class listactModel extends Model
                 group by
                 d.ID,d.Valor_Base,d.Detalle,d.Fecha,d.Tipo,d.Número,t.VALOR_APLICADO";
             if ($DOCUMENTO == "INGRESO") {
-                $sql = "SGO_PROTECCION_MARCAS_PAGOS_DOCUMENTOS 
+                $sql = "EXEC SGO_PROTECCION_MARCAS_PAGOS_DOCUMENTOS 
                     @Documento = :DOCUMENTO,
-                    @tipo = '" . $tipoDocumentoValor . "',
-                    @empresa = '" . $empresa . "'
+                    @tipo = :tipo,
+                    @empresa = :empresa
                 ";
             }
             $param = [
-                ':DOCUMENTO' => $PG_NUMERO_DOCUMENTO
+                ':DOCUMENTO' => $PG_NUMERO_DOCUMENTO,
+                ':tipo' => $tipoDocumentoValor,
+                ':empresa' => $empresa
             ];
-            $query = $this->db->execute($sql, $param);
+            $query = $this->db->query($sql, $param);
             return $query;
         } catch (Exception $e) {
             return [];

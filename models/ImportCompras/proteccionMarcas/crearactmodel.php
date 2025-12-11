@@ -60,9 +60,10 @@ class crearactModel extends Model
                 if (!empty($tipo_marca_filtrado) && isset(array_values($tipo_marca_filtrado)[0]["consolidado"]) && array_values($tipo_marca_filtrado)[0]["consolidado"] == 1) {
                     $param["ACTIVIDAD_ID"] = $lastId;
                     #TODO: Revisar error en el model listact
-                    $queryListAct = $this->listactModel->Consolidar_Actividades($param);
-                    if($queryListAct && $queryListAct["success"]) return $query;
+                    // $queryListAct = $this->listactModel->Consolidar_Actividades($param);
                 }
+                // return $param;
+                return $query;
             } else {
                 return [];
             }
