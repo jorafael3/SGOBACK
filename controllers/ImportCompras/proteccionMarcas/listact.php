@@ -138,7 +138,7 @@ class listact extends Controller
         if($result && $result['success']){
             $this->jsonResponse($result, 200);
         } else {
-            $this->jsonResponse( ['success' => false, 'error' => 'Error al obtener los datos'], 200);
+            $this->jsonResponse( ['success' => false, 'error' => 'Error al obtener los datos', 'datos'=> $result], 200);
         }
     }
     
@@ -193,7 +193,7 @@ class listact extends Controller
         if($result && $result['success']){
             $this->jsonResponse($result, 200);
         } else {
-            $this->jsonResponse( ['success' => false, 'error' => 'Error al obtener los datos'], 200);
+            $this->jsonResponse( ['success' => false, 'error' => 'Error al obtener los datos', 'datos'=> $result], 200);
         }
     }
     
