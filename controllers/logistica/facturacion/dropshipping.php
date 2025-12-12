@@ -41,10 +41,10 @@ class Dropshipping extends Controller
         // Agrupar por FACTURA_SECUENCIA y combinar bodegas
         if ($result && $result['success'] && count($result['data']) > 0) {
             $facturasAgrupadas = [];
-            
+
             foreach ($result['data'] as $factura) {
                 $secuencia = $factura['FACTURA_SECUENCIA'];
-                
+
                 if (!isset($facturasAgrupadas[$secuencia])) {
                     // Primera vez que vemos esta factura
                     $facturasAgrupadas[$secuencia] = $factura;
@@ -60,7 +60,7 @@ class Dropshipping extends Controller
                     }
                 }
             }
-            
+
             // Convertir arrays de bodegas a strings separados por comas
             $facturasFinales = [];
             foreach ($facturasAgrupadas as $factura) {
@@ -68,7 +68,7 @@ class Dropshipping extends Controller
                 $factura['CODIGOS_BODEGA'] = implode(',', $factura['CODIGOS_BODEGA']);
                 $facturasFinales[] = $factura;
             }
-            
+
             $result['data'] = $facturasFinales;
         }
 
@@ -239,14 +239,26 @@ class Dropshipping extends Controller
         // echo json_encode($data);
         // exit();
 
+        $validar = $this->model->validarDropshipping($data);
+        // echo json_encode($validar);
+        // exit();
+        if ($validar['success'] && count($validar['data']) > 0) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Ya existe un registro de dropshipping para la factura y bodega seleccionada',
+                "respuesta" => $validar
+            ], 200);
+            return;
+        }
         $result = $this->model->guardarDropshipping($data);
 
         if ($result && $result['success']) {
+            $result["message"] = "Datos de despacho guardados exitosamente";
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al guardar dropshipping',
+                'message' => 'Error al guardar dropshipping',
                 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
                 "respuesta" => $result
             ], 200);

@@ -93,6 +93,25 @@ class PrepararFacturasModel extends Model
         }
     }
 
+      function ValidarPreparacion($data)
+    {
+        try {
+            $sql = "SELECT * FROM FACTURASLISTAS WHERE Factura = :factura_id AND bodegaid=:bodega_id";
+
+            $params = [
+                ":factura_id" => $data['factura'],
+                ":bodega_id" => $data['bodega_id']
+            ];
+            
+            // Usar la conexión automática basada en el JWT
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo empresas: " . $e->getMessage());
+            return false;
+        }
+    }
+
     function FinalizarPreparacion($data = [])
     {
         try {

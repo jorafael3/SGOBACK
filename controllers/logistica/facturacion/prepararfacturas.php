@@ -199,6 +199,15 @@ class PrepararFacturas extends Controller
         $GUARDADAS = [];
         foreach ($bodegas as $bodega) {
             $data['bodega_id'] = $bodega;
+            $validar = $this->model->ValidarPreparacion($data);
+            if ($validar['success'] && count($validar['data']) > 0) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'La factura ya fue preparada para la bodega ' . $bodega,
+                    'detalle' => $validar['data']
+                ], 200);
+                return;
+            }
             $preparar = $this->model->FinalizarPreparacion($data);
             if ($preparar['success'] == true) {
                 $GUARDADAS[] = $preparar;
@@ -214,13 +223,12 @@ class PrepararFacturas extends Controller
                 'factura' => $factura,
                 'bodegas' => $bodegas,
                 "data" => $GUARDADAS,
-
             ];
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Errores al preparar algunas bodegas',
+                'message' => 'Errores al preparar algunas bodegas',
                 'detalles' => $ERRORES,
             ], 200);
         }

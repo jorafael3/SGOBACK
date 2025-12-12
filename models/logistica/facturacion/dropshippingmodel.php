@@ -109,6 +109,24 @@ class DropshippingModel extends Model
         }
     }
 
+     function validarDropshipping($data)
+    {
+        try {
+            $sql = "SELECT * from Cli_Direccion_Dropshipping where Facturaid = :factura ";
+
+            $params = [
+                ":factura" => $data['factura']
+            ];
+
+            // Usar la conexión automática basada en el JWT
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo empresas: " . $e->getMessage());
+            return false;
+        }
+    }
+
     function guardarDropshipping($data)
     {
         try {
