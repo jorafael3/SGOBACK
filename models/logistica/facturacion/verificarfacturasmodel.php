@@ -9,7 +9,7 @@ class VerificarFacturasModel extends Model
     {
         // Usar la empresa por defecto del sistema si no se especifica
         parent::__construct($empresaCode);
-        
+
         // Debug: mostrar qué empresa estás usando
         if (DEBUG) {
             error_log("VerificarFacturasModel conectado a: " . $this->empresaCode);
@@ -43,7 +43,7 @@ class VerificarFacturasModel extends Model
             $params = [
                 ":secuencia" => $secuencia
             ];
-            
+
             // Usar la conexión automática basada en el JWT
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -62,7 +62,7 @@ class VerificarFacturasModel extends Model
                 ":factura_id" => $factura_id,
                 ":bodega" => $bodega
             ];
-            
+
             // Usar la conexión automática basada en el JWT
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -81,7 +81,7 @@ class VerificarFacturasModel extends Model
                 ":ProductoId" => $factura_id,
                 ":bodega" => $bodega
             ];
-            
+
             // Usar la conexión automática basada en el JWT
             $stmt = $this->query($sql, $params);
             return $stmt;
@@ -137,6 +137,26 @@ class VerificarFacturasModel extends Model
                 "success" => false,
                 "message" => "Error guardando series SGL: " . $e->getMessage()
             ];
+        }
+    }
+
+    function ValidarEstadoFacturaLista($factura_id,$bodega_id)
+    {
+        try {
+            $sql = "SELECT * FROM FACTURASLISTAS WITH(NOLOCK)
+            WHERE Factura = :factura_id and BODEGAID = :bodega_id and estado = 'VERIFICADA'";
+
+            $params = [
+                ":factura_id" => $factura_id,
+                ":bodega_id" => $bodega_id,
+            ];
+
+            // Usar la conexión automática basada en el JWT
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo series RMA productos: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -213,7 +233,9 @@ class VerificarFacturasModel extends Model
             ];
         }
     }
-    function ActualizarRMAProductos($datos,$RMADTID){
+
+    function ActualizarRMAProductos($datos, $RMADTID)
+    {
         try {
             $estado = 'VENDIDO';
             $sql = "UPDATE RMA_PRODUCTOS 
@@ -232,6 +254,49 @@ class VerificarFacturasModel extends Model
                 ":CreadoPor" => $datos['usuario'],
                 ":serie" => $datos['serie'],
                 ":producto" => $datos['producto']
+            ];
+            $stmt = $this->db->execute($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error guardando series SGL: " . $e->getMessage());
+            return [
+                "success" => false,
+                "message" => "Error guardando series SGL: " . $e->getMessage()
+            ];
+        }
+    }
+
+    function InsertaRMAProductos($datos, $RMADTID)
+    {
+        try {
+            $estado = 'VENDIDO';
+            $sql = "INSERT INTO RMA_PRODUCTOS 
+                    (
+                        Serie,
+                        productoid,
+                        facturaid,
+                        estado,
+                        RmaDtId,
+                        CreadoDate,
+                        CreadoPor
+                    )VALUES
+                    (
+                        :serie,
+                        :productoid,
+                        :facturaid,
+                        :estado,
+                        :RmaDtId,
+                        GETDATE(),
+                        :CreadoPor
+                    )
+                    ";
+            $params = [
+                ":serie" => $datos['serie'],
+                ":productoid" => $datos['producto'],
+                ":facturaid" => $datos['factura_id'],
+                ":estado" => $estado,
+                ":RmaDtId" => $RMADTID,
+                ":CreadoPor" => $datos['usuario']
             ];
             $stmt = $this->db->execute($sql, $params);
             return $stmt;
@@ -268,6 +333,53 @@ class VerificarFacturasModel extends Model
 
             // Usar la conexión automática basada en el JWT para UPDATE
             $stmt = $this->db->execute($sql2, $params2);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error guardando series SGL: " . $e->getMessage());
+            return [
+                "success" => false,
+                "message" => "Error guardando series SGL: " . $e->getMessage()
+            ];
+        }
+    }
+
+    function InsertaLogVerificar($datos)
+    {
+        try {
+            $estado = 'VENDIDO';
+            $sql = "INSERT INTO SGO_LOG_VERIFICAR_FACTURAS_SERIES 
+                    (
+                        facturaid,
+                        productoid,
+                        bodegaid,
+                        tipo,
+                        subtipo,
+                        valor,
+                        creado_date,
+                        creado_por
+                    )VALUES
+                    (
+                        :facturaid,
+                        :productoid,
+                        :bodegaid,
+                        :tipo,
+                        :subtipo,
+                        :valor,
+                        GETDATE(),
+                        :creado_por
+                    )
+                    ";
+            $params = [
+                ":facturaid" => $datos['factura'],
+                ":productoid" => $datos['producto'],
+                ":bodegaid" => $datos['bodegas'],
+                ":tipo" => $datos['tipoVerificacion'],
+                ":subtipo" => $datos['subtipo'] ?? null,
+                ":valor" => $datos['valor'],
+                ":creado_por" => $datos['usuario']
+
+            ];
+            $stmt = $this->db->execute($sql, $params);
             return $stmt;
         } catch (Exception $e) {
             $this->logError("Error guardando series SGL: " . $e->getMessage());

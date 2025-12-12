@@ -369,7 +369,7 @@ class obligacionesbancarias extends Controller
                     'success' => false,
                     'error' => 'Error al obtener transporte guías pickup',
                     'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
-                ], 200);
+                ], 500);
             }
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
