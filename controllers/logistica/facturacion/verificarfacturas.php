@@ -90,7 +90,7 @@ class VerificarFacturas extends Controller
         if (!$cab || !$cab['success']) {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener datos de la cabecera de la factura'
+                'message' => 'Error al obtener datos de la cabecera de la factura'
             ], 500);
             return;
         }
@@ -108,6 +108,7 @@ class VerificarFacturas extends Controller
         // $det["data"] = array_merge(...$det);
         $BOD = implode(',', $BOD);
         $det = $this->model->getFacturasDetalleVerificar($cab["data"][0]['Id'], trim($BOD));
+
 
         $tieneServicios = 0;
         $sinservicios = 0;
@@ -148,7 +149,7 @@ class VerificarFacturas extends Controller
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener datos de empresas',
+                'message' => 'Error al obtener datos de empresas',
                 'empresa_actual' => $jwtData['empresa'] ?? 'N/A'
             ], 200);
         }
@@ -213,7 +214,7 @@ class VerificarFacturas extends Controller
             if (!$productos_series || !$factura) {
                 $this->jsonResponse([
                     'success' => false,
-                    'error' => 'Datos incompletos: se requiere detalle_verificacion y factura'
+                    'message' => 'Datos incompletos: se requiere detalle_verificacion y factura'
                 ], 400);
                 return;
             }
@@ -229,12 +230,27 @@ class VerificarFacturas extends Controller
             $ERRORESERIES = [];
             $ERRORESFACTURASLIS = [];
 
+            for ($i = 0; $i < count($BODEGAS); $i++) {
+                $VALIDAR = $this->model->ValidarEstadoFacturaLista($factura, $BODEGAS[$i]);
+
+                // echo json_encode($VALIDAR);
+                // exit();
+                if (count($VALIDAR['data']) > 0) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'La factura ya se encuentra verificada en la bodega ' . $BODEGAS[$i],
+                        'detalle' => $VALIDAR['data']
+                    ], 200);
+                    return;
+                }
+            }
+
+
             $ValidarRma = $this->model->ValidarTieneRmaFacturasCab($factura);
 
 
             if ($ValidarRma['success']) {
                 $RMAID = count($ValidarRma['data']) > 0 ? $ValidarRma['data'][0]['ID'] : "";
-
                 //echo json_encode($ValidarRma);
                 // exit();
                 if (count($ValidarRma['data']) == 0) {
@@ -247,25 +263,60 @@ class VerificarFacturas extends Controller
                 // exit();
                 for ($i = 0; $i < count($productos_series); $i++) {
                     $cantidad_series = $productos_series[$i]['seriesIngresadas'];
-                    for ($j = 0; $j < count($cantidad_series); $j++) {
-                        $d = [
-                            "rmafacturaid" => $RMAID,
-                            "producto" => $productos_series[$i]['productoId'],
-                            "serie" => $cantidad_series[$j],
-                            "usuario" => $data['usrid'],
-                            "factura_id" => $factura
-                        ];
-                        $RMADT = $this->model->GuardarRmaFacturasDet($d);
 
-                        // echo json_encode($RMADT);
-                        // exit();
-                        if (!$RMADT || !$RMADT['success']) {
-                            $ERRORES[] = $RMADT;
-                        } else {
-                            $ACTUALIZARRMAPRODUCTOS = $this->model->ActualizarRMAProductos($d, $RMADT["data"][0]["RMAIDDT"]);
-                            if (!$ACTUALIZARRMAPRODUCTOS || !$ACTUALIZARRMAPRODUCTOS['success']) {
-                                $ERRORES[] = $ACTUALIZARRMAPRODUCTOS;
+                    $datos_log = [
+                        "factura" => $factura,
+                        "producto" => $productos_series[$i]['productoId'],
+                        "bodegas" => implode(',', $BODEGAS),
+                        "tipoVerificacion" => $productos_series[$i]['tipoVerificacion'],
+                        "tipoSerie" => $productos_series[$i]['tipoSerie'],
+                        "valor" => $productos_series[$i]['cantidadVerificada'],
+                        "usuario" => $data['usrid'],
+                    ];
+
+                    // Si tiene series (obligatorias o libres)
+                    if (count($cantidad_series) > 0) {
+                        for ($j = 0; $j < count($cantidad_series); $j++) {
+                            $d = [
+                                "rmafacturaid" => $RMAID,
+                                "producto" => $productos_series[$i]['productoId'],
+                                "serie" => $cantidad_series[$j],
+                                "usuario" => $data['usrid'],
+                                "factura_id" => $factura,
+                                "bodegas" => implode(',', $BODEGAS),
+                            ];
+
+                            $RMADT = $this->model->GuardarRmaFacturasDet($d);
+                            
+                            if (!$RMADT || !$RMADT['success']) {
+                                $ERRORES[] = $RMADT;
+                            } else {
+                                if ($productos_series[$i]["tipoSerie"] == "obligatoria") {
+                                    $ACTUALIZARRMAPRODUCTOS = $this->model->ActualizarRMAProductos($d, $RMADT["data"][0]["RMAIDDT"]);
+                                    if (!$ACTUALIZARRMAPRODUCTOS || !$ACTUALIZARRMAPRODUCTOS['success']) {
+                                        $ERRORES[] = $ACTUALIZARRMAPRODUCTOS;
+                                    }
+                                } else if ($productos_series[$i]["tipoSerie"] == "libre") {
+                                    $GUARDARRMAPRODUCTOS = $this->model->InsertaRMAProductos($d, $RMADT["data"][0]["RMAIDDT"]);
+                                    if (!$GUARDARRMAPRODUCTOS || !$GUARDARRMAPRODUCTOS['success']) {
+                                        $ERRORES[] = $GUARDARRMAPRODUCTOS;
+                                    }
+                                }
                             }
+                            
+                            // Log por cada serie ingresada
+                            $datos_log["valor"] = $cantidad_series[$j];
+                            $VERIFICARLOG = $this->model->InsertaLogVerificar($datos_log);
+                            if (!$VERIFICARLOG || !$VERIFICARLOG['success']) {
+                                $ERRORES[] = $VERIFICARLOG;
+                            }
+                        }
+                    } else {
+                        // Si NO tiene series, insertar log con cantidadVerificada
+                        $datos_log["valor"] = $productos_series[$i]['cantidadVerificada'];
+                        $VERIFICARLOG = $this->model->InsertaLogVerificar($datos_log);
+                        if (!$VERIFICARLOG || !$VERIFICARLOG['success']) {
+                            $ERRORES[] = $VERIFICARLOG;
                         }
                     }
                 }
@@ -307,7 +358,7 @@ class VerificarFacturas extends Controller
                     $this->model->db->rollback();
                     $this->jsonResponse([
                         'success' => false,
-                        'error' => 'Se encontraron errores durante el proceso de verificación',
+                        'message' => 'Se encontraron errores durante el proceso de verificación',
                         'total_errores' => $totalErrores,
                         'errores_rma' => $ERRORES,
                         'errores_series' => $ERRORESERIES,
@@ -337,7 +388,7 @@ class VerificarFacturas extends Controller
 
                 $this->jsonResponse([
                     'success' => false,
-                    'error' => 'Error al validar RMA de la factura',
+                    'message' => 'Error al validar RMA de la factura',
                     'detalles' => $ValidarRma
                 ], 200);
             }
