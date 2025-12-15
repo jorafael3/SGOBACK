@@ -389,12 +389,12 @@ class listactModel extends Model
             $sql = 'EXECUTE SGO_ACTIVIDADES_MARCAS_GUARDAR 
             @documento = :documento,
             @actividad = :actividad,
-            @valor = :valor ,
+            @valor = :valor,
             @creado_por = :creado_por,
             @tipo = :tipo,
             @documento_id = :documento_id,
             @valor_doc = :valor_doc,
-            @id_unico= :id_unico,
+            @id_unico= :id_unico
             ';
             $param = [
                 ':documento' => $ACR_ID,
@@ -530,8 +530,20 @@ class listactModel extends Model
             $DOCUMENTO = $data["DOCUMENTO"];
             $empresa = $data["empresa"];
             $tipoDocumentoValor = $data["tipoDocumentoValor"];
-
-            $sql = "SELECT 
+            if ($DOCUMENTO == "INGRESO") {
+                $sql = "EXEC SGO_PROTECCION_MARCAS_PAGOS_DOCUMENTOS 
+                    @Documento = :DOCUMENTO,
+                    @tipo = :tipo,
+                    @empresa = :empresa
+                ";
+                $param = [
+                    // ':DOCUMENTO' => $PG_NUMERO_DOCUMENTO,
+                    ':DOCUMENTO' => "%$PG_NUMERO_DOCUMENTO%",
+                    ':tipo' => $tipoDocumentoValor,
+                    ':empresa' => $empresa
+                ];
+            } else {
+                $sql = "SELECT 
                 d.ID as DOC_ID,
                 d.Número,
                 d.Tipo as DOC_TIPO,
@@ -545,22 +557,14 @@ class listactModel extends Model
 					where p.Estado = 1
 					group by p.Documento_ID
 				) as t on t.Documento_ID =d.ID
-                where d.ID = :DOCUMENTO
+                where d.Detalle like :DOCUMENTO
                 and d.anulado = 0
                 group by
                 d.ID,d.Valor_Base,d.Detalle,d.Fecha,d.Tipo,d.Número,t.VALOR_APLICADO";
-            if ($DOCUMENTO == "INGRESO") {
-                $sql = "EXEC SGO_PROTECCION_MARCAS_PAGOS_DOCUMENTOS 
-                    @Documento = :DOCUMENTO,
-                    @tipo = :tipo,
-                    @empresa = :empresa
-                ";
+                $param = [
+                    ':DOCUMENTO' => "%$PG_NUMERO_DOCUMENTO%"
+                ];
             }
-            $param = [
-                ':DOCUMENTO' => $PG_NUMERO_DOCUMENTO,
-                ':tipo' => $tipoDocumentoValor,
-                ':empresa' => $empresa
-            ];
             $query = $this->db->query($sql, $param);
             return $query;
         } catch (Exception $e) {
