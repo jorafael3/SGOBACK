@@ -213,7 +213,7 @@ class Recepcionmodel extends Model
                 AND ProductoID = :PRODUCTO_ID ";
 
                 $paramsValidar = [
-                 
+
                     ':PRODUCTO_ID' => $producto_id,
                     ':SERIES' => $serie,
                 ];
@@ -304,7 +304,7 @@ class Recepcionmodel extends Model
 
 
 
-    
+
     function FinalizarRecepcion($data = [])
     {
         try {
@@ -319,6 +319,7 @@ class Recepcionmodel extends Model
             $transferencias = $data['transferencias'];
             $usuario = $data['usuario'] ?? null;
             $bodegaDestino = $data['BodegaID_Destino'] ?? null;
+            $Grupo = $data['Grupo'] ?? null;
 
             // Validar que haya al menos una transferencia
             if (empty($transferencias)) {
@@ -343,15 +344,19 @@ class Recepcionmodel extends Model
                 @Cantidad = :Cantidad,
                 @SucursalID = :SucursalID,
                 @CreadoPor = :CreadoPor,
-                @BODEGA_DESTINO = :BODEGA_DESTINO";
+                @BODEGA_DESTINO = :BODEGA_DESTINO,
+                @Grupo = :Grupo";
 
                 $params1 = [
+
                     ':TransferenciaID' => $transferencia['TransferenciaID'] ?? null,
                     ':ProductoID' => $transferencia['ProductoID'] ?? null,
                     ':Cantidad' => $transferencia['Cantidad'] ?? null,
                     ':SucursalID' => $transferencia['SucursalID'] ?? null,
                     ':CreadoPor' => $usuario,
                     ':BODEGA_DESTINO' => $bodegaDestino,
+                    ':Grupo' => $Grupo,
+                    
                 ];
 
                 $result1 = $this->db->execute($sql1, $params1);
