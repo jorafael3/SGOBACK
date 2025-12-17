@@ -25,44 +25,40 @@ class ConciliacionesModel extends Model
             $fecha = $param['fecha'] ?? null;
             $debito = $param['debito'] ?? null;
             $chequeCheck = $param['chequeCheck'] ?? 0;
-
             if ($chequeCheck == 1) {
-                if (!$cheque || $valor === null)
-                    return [];
                 $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK) 
                 WHERE Cheque = :cheque 
                 AND Valor = :valor
                 ORDER BY FECHA DESC";
                 $params = [
-                    ':cheque' => $cheque,
-                    ':valor' => $valor,
+                    ":cheque" => $cheque,
+                    ":valor" => $valor
                 ];
                 $stmt = $this->db->query($sql, $params);
                 return $stmt;
-            }
-            if (!$fecha || $valor === null)
-                return [];
-
-            $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK)
+            } else {
+                $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK)
                     WHERE CONVERT(date, Fecha) = :fecha
                     AND [Débito] = :debito
                     AND Valor = :valor
                     ORDER BY Fecha DESC";
-            $params = [
-                ':fecha' => $fecha,
-                ':debito' => $debito,
-                ':valor' => $valor,
-            ];
-            $stmt = $this->db->query($sql, $params);
-            return $stmt;
+                $params = [
+                    ":fecha" => $fecha,
+                    ":debito" => $debito,
+                    ":valor" => $valor
+                ];
+                $stmt = $this->db->query($sql, $params);
+                return $stmt;
+            }
         } catch (Exception $e) {
             return [];
         }
     }
 
-    function ComprobarConciliacionFila($param){
+    function ComprobarConciliacionFila($param)
+    {
         $cheque = $param['col5'] ?? null;
-        $valor = round(abs((float)$param['valor']), 2)  ?? null;
+        $valor = round(abs((float) $param['valor']), 2) ?? null;
         $fecha = $param['fecha'] ?? null;
         $debito = $param['debito'] ?? 0;
         $chequeCheck = $param['chequeCheck'] ?? 0;
