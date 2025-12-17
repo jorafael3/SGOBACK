@@ -20,8 +20,8 @@ class ConciliacionesModel extends Model
     function ComprobarConciliaciones($param)
     {
         try {
-            $cheque = $param['cheque'] ?? null;
-            $valor = abs(floatval($param['valor'])) ?? null;
+            $cheque = $param['col5'] ?? null;
+            $valor = isset($param['valor']) ? abs((float)$param['valor']) : null;
             $fecha = $param['fecha'] ?? null;
             $debito = $param['debito'] ?? null;
             $chequeCheck = $param['chequeCheck'] ?? 0;
@@ -58,7 +58,7 @@ class ConciliacionesModel extends Model
     function ComprobarConciliacionFila($param)
     {
         $cheque = $param['col5'] ?? null;
-        $valor = round(abs((float) $param['valor']), 2) ?? null;
+        $valor = isset($param['valor']) ? abs((float)$param['valor']) : null;
         $fecha = $param['fecha'] ?? null;
         $debito = $param['debito'] ?? 0;
         $chequeCheck = $param['chequeCheck'] ?? 0;
