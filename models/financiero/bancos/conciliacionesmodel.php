@@ -66,8 +66,6 @@ class ConciliacionesModel extends Model
         $debito = $param['debito'] ?? 0;
         $chequeCheck = $param['chequeCheck'] ?? 0;
         if ($chequeCheck == 1) {
-            if (!$cheque || $valor === null)
-                return false;
             $cheque = ltrim($cheque, '0');
             $sql = "SELECT 1
             FROM BAN_BANCOS_CARDEX
@@ -77,10 +75,8 @@ class ConciliacionesModel extends Model
                 ':cheque' => $cheque,
                 ':valor' => $valor
             ]);
-            return !empty($query['data']);
+            return $query['data'];
         }
-        if (!$fecha || $valor === null)
-            return false;
         $sql = "SELECT 1
         FROM BAN_BANCOS_CARDEX
         WHERE CONVERT(date, Fecha) = :fecha
@@ -91,7 +87,7 @@ class ConciliacionesModel extends Model
             ':debito' => $debito,
             ':valor' => $valor
         ]);
-        return !empty($query['data']);
+        return $query['data'];
     }
 
 }
