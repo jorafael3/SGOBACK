@@ -31,7 +31,8 @@ class ConciliacionesModel extends Model
                     return [];
                 $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK) 
                 WHERE Cheque = :cheque 
-                AND Valor = :valor";
+                AND Valor = :valor
+                ORDER BY FECHA DESC";
                 $params = [
                     ':cheque' => $cheque,
                     ':valor' => $valor,
@@ -43,7 +44,7 @@ class ConciliacionesModel extends Model
                 return [];
 
             $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK)
-                    WHERE Fecha = :fecha
+                    WHERE CONVERT(date, Fecha) = :fecha
                     AND [Débito] = :debito
                     AND Valor = :valor
                     ORDER BY Fecha DESC";
