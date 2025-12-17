@@ -24,18 +24,19 @@ class conciliaciones extends Controller
             ], 200);
         }
     }
-
-    function ComprobarConciliacionesLote()
+    
+    function Conciliaciones()
     {
         $params = $this->getJsonInput();
-        $rows = $params['rows'] ?? [];
-        $result = [];
-        foreach ($rows as $row) {
-            $existe = $this->model->ComprobarConciliacionFila($row);
-            $result[] = [
-                'existe' => $existe
-            ];
+        $result = $this->model->Conciliaciones($params);
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                "respuesta" => $result
+            ], 200);
         }
-        $this->jsonResponse($result, 200);;
     }
+
 }

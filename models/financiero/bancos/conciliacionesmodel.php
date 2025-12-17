@@ -21,70 +21,69 @@ class ConciliacionesModel extends Model
     {
         try {
             $cheque = $param['col5'] ?? null;
-            $valor = isset($param['valor']) ? abs((float)$param['valor']) : null;
+            $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
             $fecha = $param['fecha'] ?? null;
             $debito = $param['debito'] ?? null;
             $chequeCheck = $param['chequeCheck'] ?? 0;
             if ($chequeCheck == 1) {
-                $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK) 
-                WHERE Cheque = :cheque 
-                AND Valor = :valor
-                ORDER BY FECHA DESC";
+                $cheque = ltrim($cheque, '0');
+                $sql = "SELECT TOP 1 * 
+                FROM BAN_BANCOS_CARDEX with(NOLOCK) 
+                -- WHERE Cheque = :cheque 
+                -- AND Valor = :valor
+                ORDER BY Fecha DESC";
                 $params = [
-                    ":cheque" => $cheque,
-                    ":valor" => $valor
+                    // ":cheque" => $cheque,
+                    // ":valor" => $valor
                 ];
-                $stmt = $this->db->query($sql, $params);
-                return $stmt;
+                $query = $this->query($sql, $params);
+                return $query;
             } else {
-                $sql = "SELECT TOP (1) * FROM BAN_BANCOS_CARDEX WITH (NOLOCK)
-                    WHERE CONVERT(date, Fecha) = :fecha
-                    AND [Débito] = :debito
-                    AND Valor = :valor
+                $sql = "SELECT TOP (1) * 
+                FROM BAN_BANCOS_CARDEX with(NOLOCK)
+                    -- WHERE CONVERT(date, Fecha) = :fecha
+                    -- AND [Débito] = :debito
+                    -- AND Valor = :valor
                     ORDER BY Fecha DESC";
                 $params = [
-                    ":fecha" => $fecha,
-                    ":debito" => $debito,
-                    ":valor" => $valor
+                    // ":fecha" => $fecha,
+                    // ":debito" => $debito,
+                    // ":valor" => $valor
                 ];
-                $stmt = $this->db->query($sql, $params);
-                return $stmt;
-            }
+                $query = $this->query($sql, $params);
+                return $query;
+            };
         } catch (Exception $e) {
             return [];
         }
     }
 
-    function ComprobarConciliacionFila($param)
+    function Conciliaciones($param)
     {
-        $cheque = $param['col5'] ?? null;
-        $valor = isset($param['valor']) ? abs((float)$param['valor']) : null;
-        $fecha = $param['fecha'] ?? null;
-        $debito = $param['debito'] ?? 0;
-        $chequeCheck = $param['chequeCheck'] ?? 0;
-        if ($chequeCheck == 1) {
-            $cheque = ltrim($cheque, '0');
-            $sql = "SELECT 1
-            FROM BAN_BANCOS_CARDEX
-            WHERE Cheque = :cheque
-            AND Valor  = :valor";
-            $query = $this->db->query($sql, [
+        try {
+            $cheque = $param['col5'] ?? null;
+            $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
+            $fecha = $param['fecha'] ?? null;
+            $debito = $param['debito'] ?? null;
+            $chequeCheck = $param['chequeCheck'] ?? 0;
+            $sql = "EXEC SGO_BANCO_CONCILIACIONES
+            @Cheque = :cheque ,
+            @Valor = :valor ,
+            @Fecha = :fecha ,
+            @Debito = :debito ,
+            @ChequeCheck = :chequeCheck";
+            $params = [
                 ':cheque' => $cheque,
-                ':valor' => $valor
-            ]);
-            return $query['data'];
+                ':valor' => $valor,
+                ':fecha' => $fecha,
+                ':debito' => $debito,
+                ':chequeCheck' => $chequeCheck
+            ];
+            $query = $this->db->query($sql, $params);
+            return $query;
+        } catch (Exception $e) {
+            return [];
         }
-        $sql = "SELECT 1
-        FROM BAN_BANCOS_CARDEX
-        WHERE CONVERT(date, Fecha) = :fecha
-        AND [Débito] = :debito
-        AND Valor   = :valor";
-        $query = $this->db->query($sql, [
-            ':fecha' => $fecha,
-            ':debito' => $debito,
-            ':valor' => $valor
-        ]);
-        return $query['data'];
     }
 
 }
