@@ -36,7 +36,7 @@ class ConciliacionesModel extends Model
                     ':cheque' => $cheque,
                     ':valor' => $valor,
                 ];
-                $stmt = $this->query($sql, $params);
+                $stmt = $this->db->query($sql, $params);
                 return $stmt;
             }
             if (!$fecha || $valor === null)
@@ -52,7 +52,7 @@ class ConciliacionesModel extends Model
                 ':debito' => $debito,
                 ':valor' => $valor,
             ];
-            $stmt = $this->query($sql, $params);
+            $stmt = $this->db->query($sql, $params);
             return $stmt;
         } catch (Exception $e) {
             return [];
@@ -71,7 +71,7 @@ class ConciliacionesModel extends Model
             FROM BAN_BANCOS_CARDEX
             WHERE Cheque = :cheque
             AND Valor  = :valor";
-            $query = $this->query($sql, [
+            $query = $this->db->query($sql, [
                 ':cheque' => $cheque,
                 ':valor' => $valor
             ]);
@@ -82,7 +82,7 @@ class ConciliacionesModel extends Model
         WHERE CONVERT(date, Fecha) = :fecha
         AND [Débito] = :debito
         AND Valor   = :valor";
-        $query = $this->query($sql, [
+        $query = $this->db->query($sql, [
             ':fecha' => $fecha,
             ':debito' => $debito,
             ':valor' => $valor
