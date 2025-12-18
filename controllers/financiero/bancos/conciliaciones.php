@@ -39,19 +39,5 @@ class conciliaciones extends Controller
             ], 200);
         }
     }
-    
-    function Conciliaciones()
-    {
-        $params = $this->getJsonInput();
-        $result = $this->model->Conciliaciones($params);
-        if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
-        } else {
-            $this->jsonResponse([
-                'success' => false,
-                "respuesta" => $result
-            ], 200);
-        }
-    }
 
 }
