@@ -16,6 +16,16 @@ class ConciliacionesModel extends Model
         }
     }
 
+    function Cargar_Tipos_Obligaciones()
+    {
+        try {
+            $sql = "SELECT * FROM SGO_AMORTIZACION_TIPOS";
+            $query = $this->db->query($sql, []);
+            return $query;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
 
     function ComprobarConciliaciones($param)
     {
@@ -27,7 +37,7 @@ class ConciliacionesModel extends Model
             $chequeCheck = $param['chequeCheck'] ?? 0;
             if ($chequeCheck == 1) {
                 $cheque = ltrim($cheque, '0');
-                $sql = "SELECT TOP 1 * 
+                $sql = "SELECT TOP 10 * 
                 FROM BAN_BANCOS_CARDEX with(NOLOCK) 
                 -- WHERE Cheque = :cheque 
                 -- AND Valor = :valor
