@@ -210,6 +210,8 @@ class MPPs extends Controller
                 'name' => $meta['name'] ?? $it,
                 'title' => $meta['title'] ?? $it,
                 'version' => $meta['version'] ?? '',
+                'fInicio' => $meta['fInicio'] ?? '',
+                'fFin' => $meta['fFin'] ?? '',
                 'path' => $relPath,
                 'size' => filesize($full),
                 'modified' => date('Y-m-d H:i:s', filemtime($full)),
@@ -480,7 +482,9 @@ class MPPs extends Controller
         $metaIndex[$relative] = [
             'name' => $metadata['name'] ?? $finalName,
             'title' => $metadata['title'] ?? $finalName,
-            'version' => $metadata['version'] ?? ''
+            'version' => $metadata['version'] ?? '',
+            'fInicio' => $metadata['fInicio'] ?? '',
+            'fFin' => $metadata['fFin'] ?? ''
         ];
         $this->saveMetaIndex($base, $metaIndex);
 
@@ -492,6 +496,8 @@ class MPPs extends Controller
             'name' => $metaIndex[$relative]['name'],
             'title' => $metaIndex[$relative]['title'],
             'version' => $metaIndex[$relative]['version'],
+            'fInicio' => $metaIndex[$relative]['fInicio'] ?? '',
+            'fFin' => $metaIndex[$relative]['fFin'] ?? '',
             'size' => filesize($realFile),
             'modified' => date('Y-m-d H:i:s', filemtime($realFile))
         ]);
@@ -685,7 +691,9 @@ class MPPs extends Controller
         $metaIndex[$relativeNew] = [
             'name' => $meta['name'] ?? $oldMeta['name'] ?? $finalNewName,
             'title' => $meta['title'] ?? $oldMeta['title'] ?? $finalNewName,
-            'version' => $meta['version'] ?? $oldMeta['version'] ?? ''
+            'version' => $meta['version'] ?? $oldMeta['version'] ?? '',
+            'fInicio' => $meta['fInicio'] ?? $oldMeta['fInicio'] ?? '',
+            'fFin' => $meta['fFin'] ?? $oldMeta['fFin'] ?? ''
         ];
 
         $this->saveMetaIndex($base, $metaIndex);
@@ -696,7 +704,9 @@ class MPPs extends Controller
             'path' => $relativeNew,
             'name' => $metaIndex[$relativeNew]['name'],
             'title' => $metaIndex[$relativeNew]['title'],
-            'version' => $metaIndex[$relativeNew]['version']
+            'version' => $metaIndex[$relativeNew]['version'],
+            'fInicio' => $metaIndex[$relativeNew]['fInicio'] ?? '',
+            'fFin' => $metaIndex[$relativeNew]['fFin'] ?? ''
         ]);
     }
 

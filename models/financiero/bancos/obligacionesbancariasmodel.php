@@ -37,7 +37,7 @@ class ObligacionesBancariasModel extends Model
                     ":nombre" => '%' . $data['nombre'] . '%',
                 ];
             }
-            $stmt = $this->query($sql, $params);
+            $stmt = $this->db->query($sql, $params);
             return $stmt;
             // return [
             //     'success'      => true,
