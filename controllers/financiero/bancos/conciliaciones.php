@@ -10,24 +10,14 @@ class conciliaciones extends Controller
         $this->folder = 'financiero/bancos/'; // Especifica la carpeta donde está el modelo
         $this->loadModel('conciliaciones'); // Cargar el modelo correcto
     }
-
-    function Cargar_Tipos_Obligaciones()
-    {
-        $result = $this->model->Cargar_Tipos_Obligaciones();
-        if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
-        } else {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Error al obtener transporte guías pickup',
-                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
-                "respuesta" => $result
-            ], 200);
-        }
-    }
     
     function ComprobarConciliaciones()
     {
+        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        // if (!$jwtData) {
+        //     return; // La respuesta de error ya fue enviada automáticamente
+        // }
+
         $params = $this->getJsonInput();
         $result = $this->model->ComprobarConciliaciones($params);
         if ($result && $result['success']) {

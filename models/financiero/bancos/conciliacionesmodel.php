@@ -20,31 +20,39 @@ class ConciliacionesModel extends Model
     {
         try {
             $cheque = $param['col5'] ?? null;
-            $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
-            // $fecha = $param['fecha'] ?? null;
-            // $debito = $param['debito'] ?? null;
+            // $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
+            // $valor = $param['valorabs'] ?? null;
+            $valor = isset($param['valorabs']) ? round((float)$param['valorabs'], 2) : null;
+            $fecha = $param['fecha'] ?? null;
+            $debito = $param['debito'] ?? null;
             $chequeCheck = $param['chequeCheck'] ?? 0;
             if ($chequeCheck == 1) {
-                $cheque = ltrim($cheque, '0');
-                // $sql = "SELECT TOP 1 ID FROM BAN_BANCOS_CARDEX with(NOLOCK) WHERE Cheque = :cheque AND Valor = :valor ORDER BY Fecha DESC";
-                $sql = "SELECT TOP 1 Valor FROM BAN_BANCOS_CARDEX with(NOLOCK) WHERE Cheque = :cheque AND Valor = :valor ORDER BY Fecha DESC";
+                $sql = "SELECT TOP 1 ID FROM [10.5.1.3].CARTIMEX.dbo.BAN_BANCOS_CARDEX with(NOLOCK)
+                -- WHERE Cheque = :cheque
+                -- WHERE SUBSTRING( Cheque, PATINDEX('%[^0]%', Cheque + '1'), LEN(Cheque) ) = :cheque
+                -- WHERE TRY_CAST(Cheque AS INT) = TRY_CAST(:cheque AS INT)
+                WHERE LTRIM(RTRIM(Cheque)) NOT LIKE '%[^0-9]%'
+                AND TRY_CAST(LTRIM(RTRIM(Cheque)) AS BIGINT) = TRY_CAST(:cheque AS BIGINT)
+                AND Valor = :valor
+                ORDER BY Fecha DESC
+                ";
                 $params = [
-                    ":cheque" => $cheque,
-                    ":valor" => $valor
+                    ':cheque' => $cheque,
+                    ':valor' => $valor,
                 ];
-                // $query = $this->db->query($sql, $params);
                 $query = $this->db->query($sql, $params);
                 return $query;
             } else {
-                // $sql = "SELECT TOP 1 ID FROM BAN_BANCOS_CARDEX with(NOLOCK) WHERE CONVERT(date, Fecha) = :fecha AND [Débito] = :debito AND Valor = :valor ORDER BY Fecha DESC";
-                $sql = "SELECT TOP 1 ID FROM BAN_BANCOS_CARDEX with(NOLOCK) ORDER BY Fecha DESC";
-            //     $params = [
-            //         ":fecha" => $fecha,
-            //         ":debito" => $debito,
-            //         ":valor" => $valor
-            //     ];
-            // $query = $this->db->query($sql, $params);
-            $query = $this->db->query($sql);
+                $sql = "SELECT TOP 1 ID FROM [10.5.1.3].CARTIMEX.dbo.BAN_BANCOS_CARDEX with(NOLOCK)
+                WHERE [Débito] = :debito
+                AND Valor = :valor
+                ORDER BY Fecha DESC
+                ";
+                $params = [
+                    ":debito" => $debito,
+                    ":valor" => $valor
+                ];
+            $query = $this->db->query($sql, $params);
             return $query;
             };
         } catch (Exception $e) {
