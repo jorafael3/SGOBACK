@@ -37,7 +37,7 @@ class flujo extends Controller
     }
 
 
-    
+
 
     function cheques_pos_fechados()
     {
@@ -55,6 +55,75 @@ class flujo extends Controller
             $this->jsonResponse([
                 'success' => false,
                 'error' => 'Error al obtener datos FinalizarRecepcion',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+    function bancos()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->bancos($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos bancos',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+    function Facturas_Computron_por_obrar()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->Facturas_Computron_por_obrar($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos Facturas_Computron_por_obrar',
+                'details' => $result
+            ], 200);
+        }
+    }
+
+
+
+    function Facturas_Cartimex_por_Cobrar()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->Facturas_Cartimex_por_Cobrar($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos Facturas_Cartimex_por_Cobrar',
                 'details' => $result
             ], 200);
         }

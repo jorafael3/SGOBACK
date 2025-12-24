@@ -19,6 +19,32 @@ class flujomodel extends Model
 
 
 
+    function bancos($data = [])
+    {
+        try {
+            $sql = "EXEC SGO_BAN_BANCOS_CARGAR @empresa = :empresa";
+
+            $params = [
+                ':empresa' => $data['empresa'] ?? null
+            ];
+
+            // Use query() for stored procedures that return data
+            $result = $this->db->query($sql, $params);
+
+            return $result;
+
+        } catch (Exception $e) {
+            $this->logError("Error en bancos: " . $e->getMessage());
+            error_log("Exception in bancos: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
 
     function cargar_girados_no_cobrados($data = [])
     {
@@ -46,7 +72,7 @@ class flujomodel extends Model
 
 
 
-     function cheques_pos_fechados($data = [])
+    function cheques_pos_fechados($data = [])
     {
         try {
             $sql = "EXEC CARTIMEX..SGO_BAN_Informe_ChequesPosfechado";
@@ -63,6 +89,59 @@ class flujomodel extends Model
         } catch (Exception $e) {
             $this->logError("Error en cheques_pos_fechados: " . $e->getMessage());
             error_log("Exception in cheques_pos_fechados: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+
+    function Facturas_Computron_por_obrar($data = [])
+    {
+        try {
+            $sql = "EXEC SGO_CLI_Informe_CarteraXCobrar_CreditoDirecto @Semanas = 4";
+
+            // $params = [
+            //     ':empresa' => $data['empresa'] ?? null
+            // ];
+
+            // Use query() for stored procedures that return data
+            $result = $this->db->query($sql);
+
+            return $result;
+
+        } catch (Exception $e) {
+            $this->logError("Error en Facturas_Computron_por_obrar: " . $e->getMessage());
+            error_log("Exception in Facturas_Computron_por_obrar: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    function  Facturas_Cartimex_por_Cobrar($data = [])
+    {
+        try {
+            $sql = "EXEC SGO_CLI_Informe_CarteraXCobrar_CreditoDirecto @Semanas = 4";
+
+            // $params = [
+            //     ':empresa' => $data['empresa'] ?? null
+            // ];
+
+            // Use query() for stored procedures that return data
+            $result = $this->db->query($sql);
+
+            return $result;
+
+        } catch (Exception $e) {
+            $this->logError("Error en Facturas_Cartimex_por_Cobrar: " . $e->getMessage());
+            error_log("Exception in Facturas_Cartimex_por_Cobrar: " . $e->getMessage());
             return [
                 'success' => false,
                 'error' => $e->getMessage()
