@@ -55,6 +55,17 @@ class ObligacionesBancariasModel extends Model
         }
     }
 
+    function Buscar_Bancos()
+    {
+        try {
+            $sql = "SELECT ID, CtaMayorID, Nombre, Cuenta from BAN_BANCOS where Clase = '01' and GrupoID= '0000000006'";
+            $stmt = $this->db->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     function Cargar_Tipos_Obligaciones()
     {
         try {
@@ -228,7 +239,7 @@ class ObligacionesBancariasModel extends Model
         }
     }
 
-    function Guardar_Detalle_Amortizacion($DETALLE, $AMORTIZACION,$ACR_ID)
+    function Guardar_Detalle_Amortizacion($DETALLE, $AMORTIZACION, $ACR_ID)
     {
 
         try {
@@ -473,7 +484,7 @@ class ObligacionesBancariasModel extends Model
             $tasa_mensual = floatval($DATOS_REAJUSTE['tasa_mensual']);
             $cuota_fija = floatval($DATOS_REAJUSTE['cuota_fija']);
             $creado_por = isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'sistema';
-            
+
 
             $sql = "UPDATE SGO_AMORTIZACION_DT SET dt_activo = 0 WHERE cabecera_id = :cabecera_id";
             $params = [
