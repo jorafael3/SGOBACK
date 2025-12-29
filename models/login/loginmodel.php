@@ -122,7 +122,8 @@ class LoginModel extends Model
                     s.ID as SUCURSAL_EMPLEADO_ID,
                     b.Nombre as BODEGA_EMPLEADO_NOMBRE,
                     b.Código as BODEGA_EMPLEADO_CODIGO,
-                    b.ID as BODEGA_EMPLEADO_ID
+                    b.ID as BODEGA_EMPLEADO_ID,
+                    s.Nombre as SUCURSAL_NOMBRE
                     from SERIESUSR u
                     left join EMP_EMPLEADOS e
                     on e.ID = u.EmpleadoID
