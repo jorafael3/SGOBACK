@@ -16,83 +16,44 @@ class ConciliacionesModel extends Model
         }
     }
 
-    function Cargar_Tipos_Obligaciones()
-    {
-        try {
-            $sql = "SELECT * FROM SGO_AMORTIZACION_TIPOS";
-            $query = $this->db->query($sql, []);
-            return $query;
-        } catch (Exception $e) {
-            return [];
-        }
-    }
-
     function ComprobarConciliaciones($param)
     {
         try {
-            $cheque = $param['col5'] ?? null;
-            $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
+            $Cuenta = $param['Cuenta'] ?? null;
+            $ref = $param['refer'] ?? null;
+            // $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
+            // $valor = $param['valorabs'] ?? null;
+            $valor = isset($param['valorabs']) ? round((float) $param['valorabs'], 2) : null;
             $fecha = $param['fecha'] ?? null;
             $debito = $param['debito'] ?? null;
-            $chequeCheck = $param['chequeCheck'] ?? 0;
-            if ($chequeCheck == 1) {
-                $cheque = ltrim($cheque, '0');
-                $sql = "SELECT TOP 10 * 
-                FROM BAN_BANCOS_CARDEX with(NOLOCK) 
-                -- WHERE Cheque = :cheque 
-                -- AND Valor = :valor
-                ORDER BY Fecha DESC";
-                $params = [
-                    // ":cheque" => $cheque,
-                    // ":valor" => $valor
-                ];
-                $query = $this->query($sql, $params);
-                return $query;
-            } else {
-                $sql = "SELECT TOP (1) * 
-                FROM BAN_BANCOS_CARDEX with(NOLOCK)
-                    -- WHERE CONVERT(date, Fecha) = :fecha
-                    -- AND [Débito] = :debito
-                    -- AND Valor = :valor
-                    ORDER BY Fecha DESC";
-                $params = [
-                    // ":fecha" => $fecha,
-                    // ":debito" => $debito,
-                    // ":valor" => $valor
-                ];
-                $query = $this->query($sql, $params);
-                return $query;
-            };
-        } catch (Exception $e) {
-            return [];
-        }
-    }
 
-    function Conciliaciones($param)
-    {
-        try {
-            $cheque = $param['col5'] ?? null;
-            $valor = isset($param['valor']) ? abs((float) $param['valor']) : null;
-            $fecha = $param['fecha'] ?? null;
-            $debito = $param['debito'] ?? null;
-            $chequeCheck = $param['chequeCheck'] ?? 0;
-            $sql = "EXEC SGO_BANCO_CONCILIACIONES
-            @Cheque = :cheque ,
-            @Valor = :valor ,
-            @Fecha = :fecha ,
-            @Debito = :debito ,
-            @ChequeCheck = :chequeCheck";
+            $banco = "SELECT ID FROM BAN_BANCOS WHERE Cuenta = :banco";
+            $paramsBanco = [
+                ':banco' => $Cuenta
+            ];
+            $queryBanco = $this->db->query($banco, $paramsBanco);
+            $idBanco = $queryBanco['data'][0]['ID'] ?? null;
+
+            $sql = "SELECT TOP 1 ID FROM [10.5.1.3].CARTIMEX.dbo.BAN_BANCOS_CARDEX with(NOLOCK)
+                -- WHERE Cheque = :cheque
+                -- WHERE SUBSTRING( Cheque, PATINDEX('%[^0]%', Cheque + '1'), LEN(Cheque) ) = :cheque
+                -- WHERE TRY_CAST(Cheque AS INT) = TRY_CAST(:cheque AS INT)
+                WHERE [Débito] = :debito
+                AND TRY_CAST(LTRIM(RTRIM(Referencia)) AS BIGINT) = TRY_CAST(:ref AS BIGINT)
+                AND Valor = :valor
+                AND BancoId = :bancoId
+                ORDER BY Fecha DESC
+                ";
             $params = [
-                ':cheque' => $cheque,
+                ":debito" => $debito,
+                ':ref' => $ref,
                 ':valor' => $valor,
-                ':fecha' => $fecha,
-                ':debito' => $debito,
-                ':chequeCheck' => $chequeCheck
+                ':bancoId' => $idBanco
             ];
             $query = $this->db->query($sql, $params);
             return $query;
         } catch (Exception $e) {
-            return [];
+            return ['error' => $e];
         }
     }
 

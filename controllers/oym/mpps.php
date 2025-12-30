@@ -30,10 +30,37 @@ class MPPs extends Controller
     {
 
         $SO = PHP_OS;
+
+        // Determinar la empresa desde userdata (soporta varios nombres de campo)
+        $companyRaw = strtolower(trim((string) ($data['userdata']['empleado_empresa'] ?? 'Cartimex')));
+        $sucursalRaw = strtolower(trim((string) ($data['userdata']['SUCURSAL_NOMBRE'] ?? '')));
+
+        // Mapeo simple de empresas a carpetas en disco. Añadir más entradas si es necesario.
+        $companyMap = [
+            'computron' => 'Computronsa',
+            'cartimex' => 'Cartimex'
+        ];
+        $companyFolder = 'Cartimex';
+        foreach ($companyMap as $k => $v) {
+            if (strpos($companyRaw, $k) !== false) {
+                $companyFolder = $v;
+                break;
+            }
+        }
+
+        $companyFolderPath = $companyFolder;
+        if (stripos($companyFolder, 'Computron') !== false) {
+             $branchSafe = $this->sanitizeSegment($sucursalRaw);
+        if ($branchSafe !== '') {
+            $companyFolderPath .= DIRECTORY_SEPARATOR . $branchSafe;
+        }
+    }
+
         if (stripos($SO, 'Linux') !== false) {
-            $baseUpload = '/var/www/html/sgo_docs/Cartimex/oym/mpps';
+            $baseUpload = '/var/www/html/sgo_docs/' . $companyFolderPath . '/oym/mpps';
         } else {
-            $baseUpload = 'C:\xampp\htdocs\sgo_docs\Cartimex\oym\mpps';
+            // Usar separadores compatibles en Windows; las rutas con '/' funcionan también en PHP/Windows
+            $baseUpload = 'C:/xampp/htdocs/sgo_docs/' . $companyFolderPath . '/oym/mpps';
         }
 
 

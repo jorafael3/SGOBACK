@@ -26,6 +26,19 @@ class obligacionesbancarias extends Controller
             ], 200);
         }
     }
+    
+    function Buscar_Bancos()
+    {
+        $result = $this->model->Buscar_Bancos();
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                "respuesta" => $result
+            ], 200);
+        }
+    }
     function Cargar_Tipos_Obligaciones()
     {
         $result = $this->model->Cargar_Tipos_Obligaciones();
