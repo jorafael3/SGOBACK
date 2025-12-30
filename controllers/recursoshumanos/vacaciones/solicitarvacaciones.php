@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../libs/JwtHelper.php';
+require_once __DIR__ . '../../../../libs/EmailService.php';
 // require_once __DIR__ . '/../models/empresamodel.php';
 
 class solicitarvacaciones extends Controller
@@ -39,10 +40,64 @@ class solicitarvacaciones extends Controller
         // }
 
         $params = $this->getJsonInput();
-        $param['usrid'] = $param['userdata']['usuario'] ?? null;
+        // $this->jsonResponse([
+        //         "success" => true,
+        //         "data" => $params,
+        //     ], 200);
+        // exit;
+        $params['usrid'] = $params['userdata']['usuario'] ?? null;
+
         $result = $this->model->Guardar_Vacaciones_empleados($params);
         if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
+            try {
+                $emailService = new EmailService();
+
+                $empleado = $params["userdata"]['nombre'];
+                $jefe = $params["DATOS_EMPLEADO"]['Jefe'];
+                $jefeCorreo = $params["DATOS_EMPLEADO"]['CorreoJefe'];
+                $dia_solicitados = $params['dias'];
+                $dia_inicio = $params['inicio'];
+                $dia_fin = $params['fin'];
+                $dia_regreso = $params['regreso'];
+
+                // Preparar destinatarios
+                $destinatarios = [
+                    $jefeCorreo,
+                    "jalvaradoe3@gmail.com",
+                    // "sistema@cartimex.com"
+                ];
+
+                // Datos para la plantilla
+                $datos = [
+                    'jefe' => $jefe,
+                    'empleado' => $empleado,
+                    'dias_solicitados' => $dia_solicitados,
+                    'dia_inicio' => date('Y-m-d', strtotime($dia_inicio)),
+                    'dia_fin' => date('Y-m-d', strtotime($dia_fin)),
+                    'dia_regreso' => date('Y-m-d', strtotime($dia_regreso))
+                ];
+
+                // Enviar email
+                $mail = $emailService->enviar(
+                    $destinatarios,
+                    'Solicitud de Vacaciones -> ' . $empleado,
+                    $datos,
+                    'vacaciones',
+                    null,
+                    "Solicitud de Vacaciones",
+                    [],
+                    // $params["userdata"]["empresa_name"]
+                    $params["userdata"]["empleado_empresa"]
+                );
+            } catch (Exception $e) {
+                error_log("Error enviando email: " . $e->getMessage());
+            }
+            $this->jsonResponse([
+                "success" => true,
+                "message" => "Vacaciones solicitadas correctamente",
+                "data" => $result,
+                "email" => $mail
+            ], 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
