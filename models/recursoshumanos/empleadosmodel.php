@@ -22,7 +22,7 @@ class EmpleadosModel extends Model
 
 
             $sql = "SELECT e.Código as Cedula , e.Nombre , VD.Direccion as Dirección , VD.Telefono as Teléfono3
-                , e.FechaNac , j.Nombre as Jefe, VD.email , e.email_personal , d.Nombre , e.EstadoCivil , e.Nombre as Nombre_ficha,
+                , e.FechaNac , j.Nombre as Jefe, j.email as CorreoJefe, VD.email , e.email_personal , d.Nombre , e.EstadoCivil , e.Nombre as Nombre_ficha,
                 CASE WHEN e.PDecimos = 1 THEN 'SI' ELSE 'NO' END AS PDecimos,
                 CASE WHEN e.ProvisionaFR = 1 THEN 'SI' ELSE 'NO' END AS PFondos , isnull(vd.Estado, 0) as Estado 
 				, FU.Nombre AS Cargo , e.Genero ,  isnull(e.foto_perfil, '') as foto_perfil, e.Teléfono3 as Telefono2  ,
