@@ -20,12 +20,12 @@ class EmailService
         
         // Configuración SMTP
         $this->mail->isSMTP();
-        $this->mail->Host = 'smtp.gmail.com';
+        $this->mail->Host = 'mail.cartimex.com';
         $this->mail->Port = 465;
         $this->mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
         $this->mail->SMTPAuth = true;
-        $this->mail->Username = 'sgoinfocorreo@gmail.com';
-        $this->mail->Password = 'csxj xbqb uncn yuuc';
+        $this->mail->Username = 'facturacion';
+        $this->mail->Password = 'nubedealgodon$22';
         $this->mail->CharSet = 'UTF-8';
         $this->mail->isHTML(true);
     }
@@ -53,7 +53,7 @@ class EmailService
             $this->mail->clearAttachments();
             
             // Setear remitente
-            $this->mail->setFrom('sgoinfocorreo@gmail.com', "SGO ".$nombreRemitente);
+            $this->mail->setFrom('info@sgo.com', "SGO ".$nombreRemitente);
             
             // Agregar destinatarios
             if (is_string($destinatarios)) {
