@@ -195,6 +195,33 @@ class ModificarSeriesModel extends Model
         }
     }
 
+    function InsertarRmaCab($datos,$usuario)
+    {
+        try {
+            $detalle = "Factura de Venta Nro: " . $datos['Secuencia'] . " Cliente: " . $datos['Nombre'];
+            $sql = "WEB_RMA_Ventas_Insert 
+                @facturaid=:facturaid, 
+                @detalle= :detalle,   
+                @creadopor=:creadopor";
+
+            $params = [
+                ":facturaid" => $datos['Id'],
+                ":detalle" => $detalle,
+                ":creadopor" => $usuario
+            ];
+
+            // Usar la conexión automática basada en el JWT para SP
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error guardando series SGL: " . $e->getMessage());
+            return [
+                "success" => false,
+                "message" => "Error guardando series SGL: " . $e->getMessage()
+            ];
+        }
+    }
+
     function InsertarRmaDt($data)
     {
         try {
@@ -238,7 +265,6 @@ class ModificarSeriesModel extends Model
             return false;
         }
     }
-
 
     function Nuevo_RMAProductos($data)
     {

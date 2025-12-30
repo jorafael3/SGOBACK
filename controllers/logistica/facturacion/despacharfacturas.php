@@ -51,4 +51,52 @@ class DespacharFacturas extends Controller
             ], 200);
         }
     }
+
+    function DespacharFacturas()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+        $data = $this->getJsonInput();
+        $usuario = $data["userdata"]['usrid'] ?? null;
+        $ERRORES = [];
+
+        $this->model->db->beginTransaction();
+
+        echo json_encode($data);
+        exit();
+
+        if (count($data['datos']) == 0) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No se proporcionaron facturas para despachar'
+            ], 400);
+            return;
+        }
+
+        for ($i = 0; $i < count($data['datos']); $i++) {
+            $result = $this->model->DespacharFacturas($data["datos"][$i], $usuario);
+            if (!$result['success']) {
+                $ERRORES[] = $result;
+            }
+        }
+        if (count($ERRORES) == 0) {
+            $this->model->db->commit();
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Facturas despachadas correctamente',
+                // 'data' => $ARRAY_DATOS,
+                "data" => $result["data"]
+            ], 200);
+        } else {
+            $this->model->db->rollBack();
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al despachar facturas',
+                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                "respuesta" => $result
+            ], 200);
+        }
+    }
 }

@@ -20,6 +20,7 @@ class ModificarSeries extends Controller
         }
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
+        $usuario = $data['userdata']["usrid"] ?? null;
         if (!$secuencia) {
             $this->jsonResponse([
                 'success' => false,
@@ -29,6 +30,8 @@ class ModificarSeries extends Controller
         }
 
         $FACTURA_CAB = $this->model->getFacturasCab($secuencia);
+        // echo json_encode($FACTURA_CAB);
+        // exit;
 
         if (count($FACTURA_CAB['data']) == 0) {
             $this->jsonResponse([
@@ -48,6 +51,7 @@ class ModificarSeries extends Controller
         }
 
         if (count($VAL_RMA_CAB['data']) == 0) {
+            $CAB = $this->model->InsertarRmaCab($FACTURA_CAB['data'][0],$usuario);
             $this->jsonResponse([
                 'success' => false,
                 'mensaje' => 'No se encontraron datos RMA para la factura proporcionada'
