@@ -1,0 +1,23 @@
+        <h2>Factura Generada</h2>
+        
+        <div class="detalle">
+            <h3 style="color: {{COLOR_PRIMARIO}}; margin-bottom: 10px;">Detalles de la Factura</h3>
+            <p><strong>Número de Factura:</strong> {{numero_factura}}</p>
+            <p><strong>Fecha:</strong> {{fecha}}</p>
+            <p><strong>Cliente:</strong> {{cliente}}</p>
+        </div>
+
+    
+        <div style="text-align: right; padding: 15px; background-color: #f5f5f5; border-radius: 4px;">
+            <p style="margin: 5px 0;"><strong>Subtotal:</strong> {{subtotal}}</p>
+            <p style="margin: 5px 0;"><strong>IVA:</strong> {{iva}}</p>
+            <p style="margin: 5px 0; font-size: 16px; color: {{COLOR_PRIMARIO}};"><strong>TOTAL: {{total}}</strong></p>
+        </div>
+
+        <p style="margin-top: 20px;">
+            <a href="{{enlace_factura}}" class="button">Ver Factura Completa</a>
+        </p>
+
+        <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            Si tiene preguntas sobre esta factura, por favor contacte a nuestro equipo de soporte.
+        </p>

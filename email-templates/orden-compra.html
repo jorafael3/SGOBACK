@@ -1,0 +1,44 @@
+        <h2>Orden de Compra Confirmada</h2>
+        
+        <p>Estimado/a {{cliente}},</p>
+        
+        <p>Su orden de compra ha sido registrada exitosamente en nuestro sistema.</p>
+
+        <div class="detalle">
+            <h3 style="color: {{COLOR_PRIMARIO}}; margin-bottom: 10px;">Información de la Orden</h3>
+            <p><strong>Número de Orden:</strong> {{numero_orden}}</p>
+            <p><strong>Fecha:</strong> {{fecha}}</p>
+            <p><strong>Proveedor:</strong> {{proveedor}}</p>
+            <p><strong>Responsable:</strong> {{responsable}}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Unitario</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{descripcion}}</td>
+                    <td>{{cantidad}}</td>
+                    <td>{{precio_unitario}}</td>
+                    <td><strong>{{total_item}}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="text-align: right; padding: 15px; background-color: #f5f5f5; border-radius: 4px;">
+            <p style="margin: 5px 0; font-size: 16px; color: {{COLOR_PRIMARIO}};"><strong>TOTAL: {{total_orden}}</strong></p>
+        </div>
+
+        <p style="margin-top: 20px; color: #666;">
+            El estado de su orden será actualizado a medida que el proveedor procese el pedido.
+        </p>
+
+        <p>
+            <a href="{{enlace_orden}}" class="button">Ver Detalles de la Orden</a>
+        </p>

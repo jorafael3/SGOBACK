@@ -32,15 +32,21 @@ class GuiasPickup extends Controller
             ], 400);
             return;
         }
-        $result = $this->model->getFacturasGuiasPickup($data);
 
-        echo json_encode($result);
-        exit;
+        // echo json_encode($result);
+        // exit;
 
         if ($empresa == "COMPUTRON") {
+            if ($data["filtro"] == "ONLINE") {
+                $result = $this->model->getFacturasGuiasPickup($data);
+            } else {
+                $result = $this->model->getFacturasGuiasPickupDropShipping($data);
+            }
             echo json_encode($result);
             exit;
         }
+        $result = $this->model->getFacturasGuiasPickup($data);
+
         if ($result && $result['success']) {
             $datos = $result['data'];
             $FATURAS_UNICAS = [];
@@ -133,6 +139,26 @@ class GuiasPickup extends Controller
         }
     }
 
+    function GetTiendasRetiroGuiasPickup()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+
+        $result = $this->model->getTiendasRetiroGuiasPickup();
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener transporte guías pickup',
+                'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
+                "respuesta" => $result
+            ], 200);
+        }
+    }
+
     function GetFormasDespachoGuiasPickup()
     {
         $jwtData = $this->authenticateAndConfigureModel(2); // 1 = GET/POST opcional
@@ -165,7 +191,7 @@ class GuiasPickup extends Controller
                 "descripcion" => "Casillero"
             ),
         ];
-        
+
         $result = [
             'success' => true,
             'data' => $data
@@ -329,11 +355,7 @@ class GuiasPickup extends Controller
             return; // La respuesta de error ya fue enviada automáticamente
         }
 
-
-
         $data = $this->getJsonInput();
-
-
 
         // $BODEGAS = explode(',', $data['bodegaInfo'][0] ?? null)   ?? null;
         $BODEGAS = $data['bodegaInfo'] ?? null;
@@ -353,41 +375,19 @@ class GuiasPickup extends Controller
         $ERRORESFACTURAS = [];
         $ERRORESGUIA = [];
 
-        if ($es_consolidado == true) {
-            foreach ($BODEGAS as $bodega) {
-                $data['bodega'] = $bodega;
-                $FACTURASLI = $this->model->ActualizarFacturasListasParaConsolidacion($data);
-                if (!$FACTURASLI) {
-                    $ERRORESFACTURAS[] = $bodega;
-                }
+
+        foreach ($BODEGAS as $bodega) {
+            $data['bodega'] = $bodega;
+            $FACTURASLI = $this->model->ActualizarFacturasListasComputron($data);
+            if (!$FACTURASLI) {
+                $ERRORESFACTURAS[] = $bodega;
             }
-            // json_encode($data);
-            // exit();
-        } else {
-            foreach ($BODEGAS as $bodega) {
-                $data['bodega'] = $bodega;
-                $FACTURASLI = $this->model->ActualizarFacturasListas($data);
-                if (!$FACTURASLI) {
-                    $ERRORESFACTURAS[] = $bodega;
-                }
+
+            $DATOS_DESPACHO = $this->model->GuardarDatosDespachoComputron($data);
+            if (!$DATOS_DESPACHO) {
+                $ERRORESGUIA[] = $bodega;
             }
         }
-        if ($es_consolidado == true) {
-            foreach ($BODEGAS as $bodega) {
-                $data['bodega'] = $bodega;
-                $GUIAS = $this->model->GuardarListaGuias($data);
-            }
-        }
-
-
-        // foreach ($data['guiasPorBodega'] as $guia) {
-        //     $guia['factura'] = $data["factura"];
-        //     $guia['usrid'] = $data["usrid"];
-        //     $FACTURAS = $this->model->GuardarListaGuias($guia);
-        //     if (!$FACTURAS) {
-        //         $ERRORESGUIA[] = $guia;
-        //     }
-        // }
 
         if (count($ERRORESFACTURAS) + count($ERRORESGUIA) > 0) {
             $this->model->db->rollback();

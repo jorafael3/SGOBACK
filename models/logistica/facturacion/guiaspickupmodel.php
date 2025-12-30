@@ -82,11 +82,47 @@ class GuiasPickupModel extends Model
             return false;
         }
     }
+    function getFacturasGuiasPickupDropShipping($data = [])
+    {
+        try {
+            $sql = "EXECUTE SGO_LOG_GUIAS_PIKUP_DROPSHIPPING @usuario = :usuario";
+            $params = [
+                ":usuario" => $data['usrid']
+            ];
+            $stmt = $this->query($sql, $params);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo facturas guías pickup: " . $e->getMessage());
+            return false;
+        }
+    }
 
     function getTransporteGuiasPickup()
     {
         try {
             $sql = "select id, Código as Codigo  from SIS_PARAMETROS where PadreID='0000000090' order by 2";
+
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo transporte guías pickup: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function getTiendasRetiroGuiasPickup()
+    {
+        try {
+            $sql = "SELECT top 5 ID,Nombre,Código as codigo from SIS_SUCURSALES
+			where Región != 'OMNICANAL'
+			and Anulado = 0
+			and TipoNegocio = 'COMPUTRON'
+			and ID not in ('0000000067','0000000066')
+
+			UNION ALL
+
+			SELECT ID,Nombre,Código as codigo from SIS_SUCURSALES
+			where ID in ('0000000001')";
 
             $stmt = $this->query($sql);
             return $stmt;
@@ -216,7 +252,7 @@ class GuiasPickupModel extends Model
 
     //** GUARDAR COMPUTRON */
 
-    function GuardarDatosDespacho($data)
+    function GuardarDatosDespachoComputron($data)
     {
         try {
             $sql = "INSERT INTO SGO_LOG_GUIAS_DATOS_DESPACHO
@@ -224,30 +260,36 @@ class GuiasPickupModel extends Model
                 factura_id,
                 bodega_id,
                 forma_despacho,
+                tienda_retiro,
                 enviar_cliente,
                 guia,
                 bultos,
                 comentario,
+                peso,
                 creado_por
             ) VALUES (
                 :factura_id,
                 :bodega_id,
                 :forma_despacho,
+                :tienda_retiro,
                 :enviar_cliente,
                 :guia,
                 :bultos,
                 :comentario,
+                :peso,
                 :creado_por
             )";
 
             $params = [
                 ":factura_id" => $data['factura'],
-                ":bodega_id" => $data['bodegaInfo'][0],
-                ":forma_despacho" => $data['forma_despacho'],
-                ":enviar_cliente" => $data['enviar_cliente'],
+                ":bodega_id" => $data['bodega'],
+                ":forma_despacho" => $data['formaDespachoId'],
+                ":tienda_retiro" => $data['tiendaRetiroId'],
+                ":enviar_cliente" => $data['envioACliente'] ? 1 : 0,
                 ":guia" => $data['numeroGuia'],
                 ":bultos" => $data['numeroBultos'],
                 ":comentario" => $data['comentarios'],
+                ":peso" => $data['peso'],
                 ":creado_por" => $data['userdata']['usrid']
             ];
 
@@ -255,6 +297,36 @@ class GuiasPickupModel extends Model
             return $result;
         } catch (Exception $e) {
             $this->logError("Error guardando lista de guías: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    function ActualizarFacturasListasComputron($datos)
+    {
+        try {
+            $sql = "UPDATE FACTURASLISTAS 
+                SET 
+                    Estado='INGRESADAGUIA',
+                    GUIA = :GUIA,
+                    FECHAGUIA = GETDATE(),
+                    GUIAPOR = :usrid,
+                    TRANSPORTE = :TRANSPORTE
+                WHERE Factura = :factura_id
+                AND bodegaID = :bodega_id
+                ";
+
+            $params = [
+                ":factura_id" => $datos['factura'],
+                ":bodega_id" => $datos['bodega'],
+                ":GUIA" => $datos['numeroGuia'],
+                ":TRANSPORTE" => $datos['formaDespachoId'],
+                ":usrid" => $datos['userdata']["usrid"]
+            ];
+
+            $result = $this->db->execute($sql, $params);
+            return $result;
+        } catch (Exception $e) {
+            $this->logError("Error actualizando facturas listas: " . $e->getMessage());
             return false;
         }
     }
