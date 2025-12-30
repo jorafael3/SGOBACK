@@ -20,4 +20,15 @@ class MPPsModel extends Model
             return false;
         }
     }
+    
+    function getSucursales(){
+        try {
+            $sql = "SELECT * from CARTIMEX.dbo.SIS_DEPARTAMENTOS where Anulado='0' and SucursalID='00' and Nombre not like '%COMPUTRO%' and PadreID='0000000001'";
+            $stmt = $this->query($sql);
+            return $stmt;
+        } catch (PDOException $e) {
+            $this->logError("Error obteniendo departamentos: " . $e->getMessage());
+            return false;
+        }
+    }
 }

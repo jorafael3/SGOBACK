@@ -19,6 +19,7 @@ class solicitarvacaciones extends Controller
         // }
 
         $params = $this->getJsonInput();
+        // $param['EmpleadoID'] = $param['userdata']['EmpleadoID'] ?? null;
         $result = $this->model->Cargar_Vaciones_Pedidas($params);
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -30,45 +31,25 @@ class solicitarvacaciones extends Controller
         }
     }
 
-    function GetDatosPersonales()
+    function Guardar_Vacaciones_empleados()
     {
-        $jwtData = $this->authenticateAndConfigureModel(2);
-        if (!$jwtData) {
-            return;
-        }
-        $data = $this->getJsonInput();
+        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        // if (!$jwtData) {
+        //     return; // La respuesta de error ya fue enviada automáticamente
+        // }
 
-        $result = $this->model->getDatosPersonales($data);
-
+        $params = $this->getJsonInput();
+        $param['usrid'] = $param['userdata']['usuario'] ?? null;
+        $result = $this->model->Guardar_Vacaciones_empleados($params);
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'error' => 'Error al obtener datos personales',
-                'details' => $result
+                "respuesta" => $result
             ], 200);
         }
     }
 
-    function GetVacaciones()
-    {
-        $jwtData = $this->authenticateAndConfigureModel(2);
-        if (!$jwtData) {
-            return;
-        }
-        $data = $this->getJsonInput();
 
-        $result = $this->model->GetVacaciones($data);
-
-        if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
-        } else {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Error al obtener vacaciones',
-                'details' => $result
-            ], 200);
-        }
-    }
 }
