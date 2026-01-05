@@ -225,7 +225,7 @@ class BandejaModel extends Model
 
 					// Preparar destinatarios
 					$destinatarios = [
-						//$data['email_empleado'] ?? 'fdelaese@cartimex.com',
+						$data['email_empleado'] ?? 'fdelaese@cartimex.com',
 						"fdelaese@cartimex.com" // Email de prueba en dominio Cartimex
 					];
 
