@@ -17,7 +17,7 @@ class EmailService
     {
         $this->mail = new PHPMailer(true);
         $this->templatesPath = __DIR__ . '/../email-templates/';
-        
+
         // Configuración SMTP
         $this->mail->isSMTP();
         $this->mail->Host = 'mail.cartimex.com';
@@ -28,6 +28,10 @@ class EmailService
         $this->mail->Password = 'nubedealgodon$22';
         $this->mail->CharSet = 'UTF-8';
         $this->mail->isHTML(true);
+        $this->mail->SMTPDebug = 2; // Enable verbose debug output
+        $this->mail->Debugoutput = function ($str, $level) {
+            error_log("[EmailService SMTP] $str");
+        };
     }
 
     /**
@@ -51,15 +55,15 @@ class EmailService
             $this->mail->clearCCs();
             $this->mail->clearBCCs();
             $this->mail->clearAttachments();
-            
+
             // Setear remitente
-            $this->mail->setFrom('info@sgo.com', "SGO ".$nombreRemitente);
-            
+            $this->mail->setFrom('info@sgo.com', "SGO " . $nombreRemitente);
+
             // Agregar destinatarios
             if (is_string($destinatarios)) {
                 $destinatarios = [$destinatarios];
             }
-            
+
             if (is_array($destinatarios)) {
                 foreach ($destinatarios as $email) {
                     if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -67,43 +71,43 @@ class EmailService
                     }
                 }
             }
-            
+
             // Si no hay destinatarios válidos, retornar false
             if (empty($this->mail->getToAddresses())) {
                 error_log("[EmailService] No hay destinatarios válidos");
                 return false;
             }
-            
+
             // Asunto
             $this->mail->Subject = $asunto;
-            
+
             // Obtener HTML
             if ($htmlCustom) {
                 $html = $htmlCustom;
             } else {
                 $html = $this->cargarPlantilla($plantilla, $datos, strtolower($empresa));
             }
-            
+
             // Body
             $this->mail->Body = $html;
             $this->mail->AltBody = strip_tags($html);
-            
+
             // Agregar documentos/archivos adjuntos
             if (!empty($documentos)) {
                 $this->agregarAdjuntos($documentos);
             }
-            
+
             // Enviar
             $resultado = $this->mail->send();
-            
+
             if ($resultado) {
                 error_log("[EmailService] Email enviado a: " . implode(', ', array_column($this->mail->getToAddresses(), '0')) . " - Asunto: $asunto");
             } else {
                 error_log("[EmailService] Error: " . $this->mail->ErrorInfo);
             }
-            
+
             return $resultado;
-            
+
         } catch (Exception $e) {
             error_log("[EmailService] Excepción: " . $e->getMessage());
             return false;
@@ -121,30 +125,30 @@ class EmailService
     private function cargarPlantilla($plantilla, $datos = [], $empresa = 'sgo')
     {
         $archivo = $this->templatesPath . $plantilla . '.html';
-        
+
         if (!file_exists($archivo)) {
             throw new Exception("Plantilla no encontrada: $archivo");
         }
-        
+
         $html = file_get_contents($archivo);
-        
+
         // Agregar header y footer según la empresa
         $header = $this->generarHeader($empresa);
         $footer = $this->generarFooter($empresa);
         $html = $header . $html . $footer;
-        
+
         // Reemplazar variables {{variable}}
         foreach ($datos as $clave => $valor) {
             // Convertir valores no-string
             if (is_array($valor) || is_object($valor)) {
                 $valor = json_encode($valor);
             } elseif (!is_string($valor)) {
-                $valor = (string)$valor;
+                $valor = (string) $valor;
             }
-            
+
             $html = str_replace('{{' . $clave . '}}', $valor, $html);
         }
-        
+
         return $html;
     }
 
@@ -171,7 +175,7 @@ class EmailService
         if (!is_array($documentos)) {
             $documentos = [$documentos];
         }
-        
+
         foreach ($documentos as $archivo) {
             if (file_exists($archivo)) {
                 try {
@@ -195,7 +199,7 @@ class EmailService
     private function generarHeader($empresa)
     {
         $empresa = strtolower($empresa);
-        
+
         $headers = [
             'cartimex' => '
                 <div style="background: linear-gradient(135deg, #1a5490 0%, #2980b9 100%); padding: 0; margin: 0; text-align: center;">
@@ -228,7 +232,7 @@ class EmailService
                 <div style="background-color: #ffffff; height: 4px; background: linear-gradient(90deg, #2c3e50 0%, #3498db 100%);"></div>
             '
         ];
-        
+
         return isset($headers[$empresa]) ? $headers[$empresa] : $this->generarHeaderDefault();
     }
 
@@ -263,7 +267,7 @@ class EmailService
     private function generarFooter($empresa)
     {
         $empresa = strtolower($empresa);
-        
+
         $footers = [
             'cartimex' => '<div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #ddd; margin-top: 30px;">
                 <p style="margin: 5px 0; color: #666; font-size: 12px;"><strong>CARIEX</strong></p>
@@ -281,7 +285,7 @@ class EmailService
                 <p style="margin: 5px 0; color: #95a5a6; font-size: 10px;">© 2025 SGO. Todos los derechos reservados.</p>
             </div>'
         ];
-        
+
         return isset($footers[$empresa]) ? $footers[$empresa] : $footers['sgo'];
     }
 }

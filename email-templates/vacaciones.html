@@ -1,0 +1,128 @@
+<!-- Contenedor principal con padding -->
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f7fa; padding: 20px 0;">
+    <tr>
+        <td align="center">
+            <!-- Contenedor de contenido -->
+            <table width="600" cellpadding="0" cellspacing="0"
+                style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+
+                <!-- Header con gradiente verde -->
+                <tr>
+                    <td
+                        style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 30px 40px; text-align: center;">
+                        <h1
+                            style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            ✅ Solicitud de Vacaciones Aprobada
+                        </h1>
+                        <p style="color: #e8f8f5; margin: 10px 0 0 0; font-size: 14px;">
+                            Tu solicitud ha sido procesada exitosamente
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Contenido principal -->
+                <tr>
+                    <td style="padding: 40px;">
+
+                        <!-- Mensaje de bienvenida -->
+                        <p style="color: #2c3e50; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                            Estimado(a) <strong>{{empleado_nombre}}</strong>,
+                        </p>
+
+                        <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 30px 0;">
+                            Nos complace informarte que tu solicitud de vacaciones ha sido <strong
+                                style="color: #27ae60;">APROBADA</strong>.
+                        </p>
+
+                        <!-- Tabla de detalles con diseño mejorado -->
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                            style="border: 2px solid #27ae60; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
+                            <tr>
+                                <td colspan="2" style="background-color: #27ae60; padding: 15px; text-align: center;">
+                                    <h3 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 600;">
+                                        📋 Detalles de tu Solicitud
+                                    </h3>
+                                </td>
+                            </tr>
+                            <tr style="background-color: #f8f9fa;">
+                                <td style="padding: 15px 20px; border-bottom: 1px solid #e9ecef; width: 40%;">
+                                    <span
+                                        style="color: #7f8c8d; font-size: 13px; display: block; margin-bottom: 5px;">FECHA
+                                        DE INICIO</span>
+                                    <strong style="color: #2c3e50; font-size: 16px;">🗓️ {{fecha_inicio}}</strong>
+                                </td>
+                                <td style="padding: 15px 20px; border-bottom: 1px solid #e9ecef;">
+                                    <span
+                                        style="color: #7f8c8d; font-size: 13px; display: block; margin-bottom: 5px;">FECHA
+                                        DE FIN</span>
+                                    <strong style="color: #2c3e50; font-size: 16px;">🗓️ {{fecha_fin}}</strong>
+                                </td>
+                            </tr>
+                            <tr style="background-color: #ffffff;">
+                                <td style="padding: 15px 20px; border-bottom: 1px solid #e9ecef;">
+                                    <span
+                                        style="color: #7f8c8d; font-size: 13px; display: block; margin-bottom: 5px;">FECHA
+                                        DE REGRESO</span>
+                                    <strong style="color: #2c3e50; font-size: 16px;">🔙 {{fecha_regreso}}</strong>
+                                </td>
+                                <td style="padding: 15px 20px; border-bottom: 1px solid #e9ecef;">
+                                    <span
+                                        style="color: #7f8c8d; font-size: 13px; display: block; margin-bottom: 5px;">APROBADO
+                                        POR</span>
+                                    <strong style="color: #2c3e50; font-size: 16px;">✍️ {{aprobado_por}}</strong>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Badge de estado -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                            <tr>
+                                <td align="center"
+                                    style="padding: 20px; background: linear-gradient(135deg, #27ae60 0%, #229954 100%); border-radius: 8px;">
+                                    <p
+                                        style="color: #ffffff; font-size: 20px; margin: 0; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        🎉 Estado: {{estado}}
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Nota importante -->
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                            style="background-color: #e8f8f5; border-left: 4px solid #27ae60; border-radius: 4px; margin-bottom: 25px;">
+                            <tr>
+                                <td style="padding: 20px;">
+                                    <p style="margin: 0 0 10px 0; color: #27ae60; font-size: 15px; font-weight: 600;">
+                                        📌 Nota Importante
+                                    </p>
+                                    <p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">
+                                        Por favor, asegúrate de coordinar con tu equipo antes de tu ausencia.
+                                        Recuerda dejar pendientes organizados y contactos de respaldo si es necesario.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Mensaje de cierre -->
+                        <p style="color: #555; font-size: 14px; line-height: 1.6; margin: 0;">
+                            ¡Disfruta tus vacaciones! 🌴
+                        </p>
+
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td
+                        style="background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                        <p style="color: #95a5a6; font-size: 12px; margin: 0; line-height: 1.5;">
+                            Si tienes alguna pregunta sobre esta solicitud de vacaciones,<br>
+                            por favor contacta al departamento de <strong>Recursos Humanos</strong>.
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
