@@ -226,7 +226,8 @@ class BandejaModel extends Model
 					// Preparar destinatarios
 					$destinatarios = [
 						$data['email_empleado'] ?? 'fdelaese@cartimex.com',
-						"fdelaese@cartimex.com" // Email de prueba en dominio Cartimex
+						"fdelaese@cartimex.com", // Email de prueba en dominio Cartimex
+						"kfranco@cartimex.com" // Email de prueba en dominio Cartimex
 					];
 
 					// Datos para la plantilla de vacaciones
