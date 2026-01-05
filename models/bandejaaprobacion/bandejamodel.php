@@ -710,6 +710,8 @@ class BandejaModel extends Model
 		}
 	}
 
+
+	
 	function GetVacacionesRechazadas($data = [])
 	{
 		try {
