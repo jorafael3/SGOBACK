@@ -185,7 +185,6 @@ class BandejaModel extends Model
 
 
 
-
 	function GetVacacionesAprobar($data = [])
 	{
 		try {
@@ -293,7 +292,6 @@ class BandejaModel extends Model
 			];
 		}
 	}
-
 
 
 
@@ -537,6 +535,8 @@ class BandejaModel extends Model
 	}
 
 
+
+
 	function generarPDFAprobacion2($data)
 	{
 		try {
@@ -711,7 +711,10 @@ class BandejaModel extends Model
 	}
 
 
-	
+
+
+
+
 	function GetVacacionesRechazadas($data = [])
 	{
 		try {

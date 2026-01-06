@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../libs/JwtHelper.php';
-require_once __DIR__ . '../../../../libs/EmailService.php';
+require_once __DIR__ . '/../../libs/EmailService.php';
 class Empleados extends Controller
 {
     public function __construct()
@@ -523,6 +523,8 @@ class Empleados extends Controller
     }
 
 
+
+
     function ConsultarRolesPago()
     {
         $jwtData = $this->authenticateAndConfigureModel(2);
@@ -543,6 +545,7 @@ class Empleados extends Controller
             ], 200);
         }
     }
+
 
 
 
