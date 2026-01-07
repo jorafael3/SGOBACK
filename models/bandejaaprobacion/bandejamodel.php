@@ -280,6 +280,44 @@ class BandejaModel extends Model
 	//********************************** */
 
 
+	function GetVacacionesAprobacion($data = [])
+	{
+		try {
+
+			$sql = "SELECT distinct v.estado as Estado , e.Nombre as Empleado , v.Dia_inicio , v.Dia_fin , v.Dia_regreso ,
+			d.Nombre as Departamento , e.email , v.Periodo , e.Código as Cedula , Dias_pendientes , Dias_solicitados
+			, e.FechaIngreso , fu.Nombre as Cargo
+            , v.ID
+            from SGO_VACACIONES_SOLICITADAS_EMPLEADOS v 
+            inner join EMP_EMPLEADOS E on v.EmpleadoID = e.ID
+			inner join SIS_DEPARTAMENTOS D on d.ID = E.DepartamentoID
+			inner join SERIESUSR US on us.EmpleadoId = e.ID
+			inner join EMP_EMPLEADOS JF on jf.ID = e.PadreID
+			inner join SERIESUSR U on U.EmpleadoId = JF.ID
+			inner join EMP_FUNCIONES fu on fu.ID = e.FunciónID
+            where U.usrid = :usrid";
+
+			$params = [
+
+				':usrid' => $data['usrid'] ?? null,
+
+			];
+
+			$stmt = $this->query($sql, $params);
+
+
+			return $stmt;
+
+		} catch (Exception $e) {
+			$this->logError("Error en GetVacacionesAprobacion: " . $e->getMessage());
+			error_log("Exception in GetVacacionesAprobacion: " . $e->getMessage());
+			return [
+				'success' => false,
+				'error' => $e->getMessage()
+			];
+		}
+	}
+
 
 	function generarPDFAprobacion($data)
 	{
@@ -454,10 +492,6 @@ class BandejaModel extends Model
 		}
 	}
 
-
-
-
-
 	function GenerarPDFVacacion($data = [])
 	{
 		try {
@@ -518,9 +552,6 @@ class BandejaModel extends Model
 			];
 		}
 	}
-
-
-
 
 	function generarPDFAprobacion2($data)
 	{
@@ -694,11 +725,6 @@ class BandejaModel extends Model
 			return ['success' => false, 'error' => $e->getMessage()];
 		}
 	}
-
-
-
-
-
 
 	function GetVacacionesRechazadas($data = [])
 	{

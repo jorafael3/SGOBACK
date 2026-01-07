@@ -131,6 +131,27 @@ class Bandeja extends Controller
         }
     }
 
+    
+    function GetVacacionesAprobacion()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->GetVacacionesAprobacion($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse($result, 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos personales',
+                'details' => $result
+            ], 200);
+        }
+    }
 
 
     function GetVacacionesAprobar()
