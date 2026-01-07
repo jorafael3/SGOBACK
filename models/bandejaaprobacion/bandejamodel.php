@@ -57,18 +57,21 @@ class BandejaModel extends Model
 							WHEN f.Estado = 2 then 'Rechazado'
 							ELSE ''
 							END,
+				solicitado_por_usuarioid = u.usrid,
 				solicitado_por_usuario = u.usuario,
-				solicitado_por_usuario_nombre = u.nombre,
+				solicitado_por_usuario_nombre = LTRIM(RTRIM(u.nombre)),
+				solicitado_por_usuario_email = isnull(em.email,u.email_sgo),
+
 				Buzon = u2.usuario,
 				Buzon_nombre = u2.nombre,
 				Empresa,
 				Tipo_gasto = t.tipo_nombre,
 				Tipo_gasto_necesita_preaprobacion = t.preaprobacion,
 				--
-				aprobado_por = isnull(aprobado_por,''),
+				aprobado_por = isnull(u4.usuario,''),
 				aprobado_nota = isnull(Nota_aprobado,''),
 				aprobado_fecha = isnull(Fecha_aprobacion,''),
-				rechazado_por = isnull(rechazado_por,''),
+				rechazado_por = isnull(u5.usuario,''),
 				rechazado_nota  =  isnull(comentario_rechazo,''),
 				rechazado_fecha  =  isnull(fecha_rechazo,''),
 				isnull(ds.total,0) as doc_es_total,
@@ -79,6 +82,8 @@ class BandejaModel extends Model
 				isnull(u3.usuario,'') as PREAPROBADA_POR,
 				isnull(f.PREAPROBADA_FECHA,'') as PREAPROBADA_FECHA,
 				isnull(f.PREAPROBADA_COMENTARIO,'') as PREAPROBADA_COMENTARIO
+
+
 				from SGO_PROV_BANCOS_FACTURAS_SUBIDAS f
 				left join SERIESUSR u
 				on u.usrid = f.Creado_por
@@ -86,6 +91,10 @@ class BandejaModel extends Model
 				on u2.usrid = f.Buzon
 				left join SERIESUSR u3
 				on u3.usrid = f.PREAPROBADA_POR
+				left join SERIESUSR u4
+				on u4.usrid = f.aprobado_por
+				left join SERIESUSR u5
+				on u5.usrid = f.rechazado_por
 				left join SGO_PROV_BANCOS_FACTURAS_SUBIDAS_TIPOS_GASTO t
 				on t.id = f.TIPO
 				LEFT JOIN(
@@ -96,7 +105,8 @@ class BandejaModel extends Model
 					where Fecha_creado between '$inicio' and '$fin'
 					group by CedBeneficiario
 				) as ds on ds.CedBeneficiario = f.CedBeneficiario
-				--update SGO_PROV_BANCOS_FACTURAS_SUBIDAS set Buzon = 'KTOMALA'
+				LEFT JOIN emp_empleados em
+				on em.id = u.EmpleadoID
 				where buzon = :buzon
                 AND empresa = :empresa
 				and f.Estado = :estado
@@ -277,6 +287,32 @@ class BandejaModel extends Model
 		}
 	}
 
+	function RechazarFactura($params)
+	{
+		try {
+			$sql = "UPDATE CARTIMEX..SGO_PROV_BANCOS_FACTURAS_SUBIDAS
+					SET
+						estado = 2,
+						rechazado_por = :usuario_id,
+						comentario_rechazo = :comentario,
+						fecha_rechazo = GETDATE()
+					WHERE ID_factura = :factura_id
+			";
+			$params = [
+				":factura_id" => $params['factura']["ID_factura"],
+				":usuario_id" => $params['userdata']["usrid"],
+				":comentario" => $params['comentario'] ?? ''
+			];
+			$result = $this->db->execute($sql, $params);
+			return $result;
+		} catch (Exception $e) {
+			return [
+				'success' => false,
+				'error' => 'Error en la consulta: ' . $e->getMessage()
+			];
+		}
+	}
+
 	//********************************** */
 
 
@@ -307,7 +343,6 @@ class BandejaModel extends Model
 
 
 			return $stmt;
-
 		} catch (Exception $e) {
 			$this->logError("Error en GetVacacionesAprobacion: " . $e->getMessage());
 			error_log("Exception in GetVacacionesAprobacion: " . $e->getMessage());
@@ -485,7 +520,6 @@ class BandejaModel extends Model
 				'pdfData' => $pdfBinary,
 				'filename' => 'Solicitud_Vacaciones_' . str_replace(' ', '_', $data['Empleado']) . '.pdf'
 			];
-
 		} catch (Exception $e) {
 			error_log("Error generando PDF de vacaciones: " . $e->getMessage());
 			return ['success' => false, 'error' => $e->getMessage()];
@@ -542,7 +576,6 @@ class BandejaModel extends Model
 			} else {
 				return $pdfResult;
 			}
-
 		} catch (Exception $e) {
 			$this->logError("Error en GenerarPDFVacacion: " . $e->getMessage());
 			error_log("Exception in GenerarPDFVacacion: " . $e->getMessage());
@@ -719,7 +752,6 @@ class BandejaModel extends Model
 				'pdfData' => $pdfBinary,
 				'filename' => 'Solicitud_Vacaciones_' . str_replace(' ', '_', $data['Empleado']) . '.pdf'
 			];
-
 		} catch (Exception $e) {
 			error_log("Error generando PDF de vacaciones: " . $e->getMessage());
 			return ['success' => false, 'error' => $e->getMessage()];
@@ -796,7 +828,6 @@ class BandejaModel extends Model
 			}
 
 			return $stmt;
-
 		} catch (Exception $e) {
 			$this->logError("Error en GetVacacionesRechazadas: " . $e->getMessage());
 			error_log("Exception in GetVacacionesRechazadas: " . $e->getMessage());
