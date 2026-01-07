@@ -112,6 +112,11 @@ class NuevaFacturaModel extends Model
             $tipogasto = "%" . $data['tipo_gasto'] . "%";
             $busqueda = "%" . $data['busqueda'] . "%";
             $busqueda_nombre = "%" . $data['busqueda'] . "%";
+            $superamonto = $data['superamontoAprobacion'] ? 1 : 0;
+            $extra = "";
+            if ($superamonto == 1) {
+                $extra = " AND ua.aprobacionpormonto = 1";
+            }
 
             $sql = "SELECT
                 ua.usuario_id as usuario_id,
@@ -127,7 +132,8 @@ class NuevaFacturaModel extends Model
                 where empresa like :empresa
                 and tipogastos like :tipogasto
                 and (u.usuario like :busqueda or u.nombre like :busqueda_nombre)
-                and ua.estado = 1";
+                and ua.estado = 1
+                $extra";
             $params = [
                 ':empresa' => $empresa,
                 ':tipogasto' => $tipogasto,

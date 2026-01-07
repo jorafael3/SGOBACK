@@ -92,6 +92,10 @@ class nuevafactura extends Controller
         }
         $data = $this->getJsonInput();
         $secuencia = $data['secuencia'] ?? null;
+        $archivo = $data['documentos'][0]["base64"] ?? [];
+
+        // echo json_encode(constant("UPLOAD_PATH"));
+        // exit();
 
         // Validar que secuencia no esté vacía
         if (!$secuencia) {
@@ -168,7 +172,7 @@ class nuevafactura extends Controller
 
         //** VALIDAR MONTO */
 
-        if (floatval($data["subtotal_12"]) + floatval($data["subtotal_0"]) >= 1500) {
+        if (floatval($data["subtotal15"]) + floatval($data["subtotal0"]) >= 1500) {
             $data["preaprobacion"] = 1;
             $data["preaprobacionmonto"] = 1;
         }
@@ -178,16 +182,27 @@ class nuevafactura extends Controller
 
 
         if ($result['success']) {
+            // Guardar archivo si existe
+            if (!empty($archivo)) {
+                $uploadDir = UPLOAD_PATH . 'Cartimex/proveeduria/ingresos_facturas/facturas/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                $fileData = base64_decode($archivo);
+                $filename = $data['documentos'][0]["nombre"]; // Asumir PDF
+                $filePath = $uploadDir . $filename;
+                if (file_put_contents($filePath, $fileData) === false) {
+                    error_log("Error guardando archivo: " . $filePath);
+                }
+            }
+
             // Enviar email de confirmación a múltiples destinatarios
             try {
                 $emailService = new EmailService();
-
                 // Preparar destinatarios
                 $destinatarios = [
-                    $data["responsable"]['email_empresa'],
-                    "jalvaradoe3@gmail.com"
+                    $data["responsable"]['email_empresa']
                 ];
-
                 // Datos para la plantilla
                 $datos = [
                     'numero_factura' => $secuencia_formateada,
@@ -196,7 +211,6 @@ class nuevafactura extends Controller
                     // 'tipo_gasto' => $data['tipo_gasto'] ?? 'Gasto',
                     'monto' => '$' . number_format($data['total'] ?? 0, 2)
                 ];
-
                 // Enviar email
                 $mail = $emailService->enviar(
                     $destinatarios,

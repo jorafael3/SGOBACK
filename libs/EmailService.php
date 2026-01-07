@@ -61,9 +61,15 @@ class EmailService
             }
             
             if (is_array($destinatarios)) {
+                $first = true;
                 foreach ($destinatarios as $email) {
                     if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                        $this->mail->addAddress($email);
+                        if ($first) {
+                            $this->mail->addAddress($email);
+                            $first = false;
+                        } else {
+                            $this->mail->addBCC($email);
+                        }
                     }
                 }
             }
