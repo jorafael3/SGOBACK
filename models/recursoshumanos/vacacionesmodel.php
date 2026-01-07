@@ -18,7 +18,7 @@ class VacacionesModel extends Model
     {
         try {
             // $EmpleadoID = $param['EmpleadoID'] ?? null;
-            $EmpleadoID = $param['userdata']['EmpleadoID'] ?? null;
+            $EmpleadoID = $param['userdata']['EmpleadoId'] ?? $param['userdata']['EmpleadoID'] ?? null;
             $tipo = 1;
             $sql = "EXECUTE SGO_REC_VACACIONES_SOLICITADAS @empleado = :empleado, @tipo = :tipo";
             $params = [
@@ -40,7 +40,7 @@ class VacacionesModel extends Model
             $DATOS_EMPLEADO = $param['DATOS_EMPLEADO'] ?? [];
             $SOLICITUD_ID = date("YmdHis");
 
-            $EmpleadoID = $param['userdata']['EmpleadoID'] ?? null;
+            $EmpleadoID = $param['userdata']['EmpleadoId'] ?? $param['userdata']['EmpleadoID'] ?? null;
 
             $OK = 0;
             $ERRORES = [];
@@ -117,7 +117,7 @@ class VacacionesModel extends Model
             $SOLICITUD_ID = $param['solicitudId'] ?? null;
             $EmpleadoID = $param['EmpleadoID'] ?? null;
             $Cancelado_Comentario = $param['motivo'] ?? null;
-
+            
             $sql = "UPDATE SGO_VACACIONES_SOLICITADAS_EMPLEADOS
             SET cancelado = 1, 
             cancelado_comentario = :Cancelado_comentario

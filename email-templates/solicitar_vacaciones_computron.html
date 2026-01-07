@@ -1,0 +1,117 @@
+<html>
+                <head>
+                    <meta charset='UTF-8'>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            background-color: #f9e79f; /* Fondo solicitado */
+                            margin: 0;
+                            padding: 0;
+                            color: #212529;
+                        }
+                        .container {
+                            max-width: 600px;
+                            margin: 20px auto;
+                            background-color: #ffffff;
+                            border-radius: 8px;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                            overflow: hidden;
+                        }
+                        .header {
+                            background-color: #ffc107;
+                            padding: 20px;
+                            text-align: center;
+                        }
+                        .header img {
+                            max-width: 180px;
+                            height: auto;
+                        }
+                        .content {
+                            padding: 20px;
+                        }
+                        h1 {
+                            font-size: 20px;
+                            margin-bottom: 20px;
+                        }
+                        p {
+                            font-size: 16px;
+                            margin-bottom: 20px;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 20px;
+                            font-size: 15px;
+                        }
+                        th, td {
+                            padding: 10px;
+                            border: 1px solid #dee2e6;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #e9ecef;
+                        }
+                        .btn {
+                            display: inline-block;
+                            padding: 10px 15px;
+                            color: #fff;
+                            text-decoration: none;
+                            border-radius: 5px;
+                            font-weight: bold;
+                        }
+                        .btn-approve {
+                            background-color: #28a745;
+                            color: #fff;
+                        }
+                        .btn-reject {
+                            background-color: #dc3545;
+                            color: #fff;
+
+                        }
+                        .footer {
+                            text-align: center;
+                            padding: 15px;
+                            font-size: 13px;
+                            color: #6c757d;
+                            background-color: #f1f1f1;
+                        }
+                        @media only screen and (max-width: 600px) {
+                            .container, table {
+                                width: 100% !important;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <img src='https://computron.com.ec/wp-content/uploads/2023/08/computron-tienda-online.png' alt='Cartimex Logo'>
+                        </div>
+                        <div class='content'>
+                            <h1>Hola {{jefe}}</h1>
+                            <p><strong>{{empleado}}</strong> ha solicitado vacaciones. A continuación los detalles:</p>
+                            <table>
+                                <tr>
+                                    <th>Total días solicitados</th>
+                                    <th>Desde</th>
+                                    <th>Hasta</th>
+                                    <th>Fecha de regreso</th>
+                                </tr>
+                                <tr>
+                                    <td>{{dias_solicitados}}</td>
+                                    <td>{{dia_inicio}}</td>
+                                    <td>{{dia_fin}}</td>
+                                    <td>{{dia_regreso}}</td>
+                                </tr>
+                            </table>
+                            <p>
+                                <a href='http://nuevo.cartimex.com:82/SGO/Computronsa/vacacionesrecursos/solicitud/Enviar_aprobado?ID=$ID' class='btn btn-approve'>Aprobar</a>
+                                <a href='http://nuevo.cartimex.com:82/SGO/Computronsa/vacacionesrecursos/solicitud/rechazar_solicitud?ID=$ID' class='btn btn-reject'>Rechazar</a>
+                            </p>
+                        </div>
+                        <div class='footer'>
+                            &copy; " . date('Y') . " Computron. Todos los derechos reservados.
+                        </div>
+                    </div>
+                </body>
+                </html>

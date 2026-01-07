@@ -16,7 +16,8 @@ class EmpleadosModel extends Model
         parent::__construct($empresaCode);
     }
 
-
+// ALTER TABLE EMP_EMPLEADOS
+// ADD foto_perfil VARCHAR(200) Null
     function getDatosPersonales($data = [])
     {
         try {
@@ -33,7 +34,7 @@ class EmpleadosModel extends Model
                 from EMP_EMPLEADOS e 
                 inner join EMP_EMPLEADOS j ON e.PadreID = j.ID
                 inner join SIS_DEPARTAMENTOS D on E.DepartamentoID = D.ID
-				left outer join SGO_EMPLEADOS_VALIDACIONES VD on vd.EmpleadoID = e.ID
+				left outer join CARTIMEX..SGO_EMPLEADOS_VALIDACIONES VD on vd.EmpleadoID = e.ID
 				inner join EMP_FUNCIONES FU ON FU.ID = E.FunciónID
                 WHERE e.ID = :empleadoId
                 ";
@@ -111,7 +112,8 @@ class EmpleadosModel extends Model
         try {
 
 
-            $sql = "EXEC  CARTIMEX..SGO_Reporte_Vacaciones_Tomadas :empleadoId";
+            // $sql = "EXEC  CARTIMEX..SGO_Reporte_Vacaciones_Tomadas :empleadoId";
+            $sql = "EXEC SGO_Reporte_Vacaciones_Tomadas :empleadoId";
 
             $params = [
 

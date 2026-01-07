@@ -17,10 +17,10 @@ class vacaciones extends Controller
 
     function Cargar_Vacaciones_Pedidas()
     {
-        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
-        // if (!$jwtData) {
-        //     return; // La respuesta de error ya fue enviada automáticamente
-        // }
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
 
         $params = $this->getJsonInput();
         // $param['EmpleadoID'] = $param['userdata']['EmpleadoID'] ?? null;
@@ -66,33 +66,12 @@ class vacaciones extends Controller
         }
     }
 
-    function Tomar_datos_empresas()
-    {
-        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
-        // if (!$jwtData) {
-        //     return; // La respuesta de error ya fue enviada automáticamente
-        // }
-
-        $params = $this->getJsonInput();
-        $result = $this->model->Tomar_datos_empresas($params);
-        if ($result && $result['success']) {
-            $this->jsonResponse($result, 200);
-        } else {
-            $this->jsonResponse([
-                'success' => false,
-                "respuesta" => $result,
-                "params" => $params
-            ], 200);
-        }
-    }
-
-
     function Guardar_Vacaciones_empleados()
     {
-        // $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
-        // if (!$jwtData) {
-        //     return; // La respuesta de error ya fue enviada automáticamente
-        // }
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
 
         $params = $this->getJsonInput();
         $params['usrid'] = $params['userdata']['usuario'] ?? null;
@@ -127,17 +106,31 @@ class vacaciones extends Controller
                     'dia_regreso' => date('Y-m-d', strtotime($dia_regreso))
                 ];
 
+                $empresa = $params["userdata"]["empleado_empresa"];
+
+                switch ($empresa) {
+                    case 'CARTIMEX':
+                        $plantilla = 'solicitar_vacaciones_cartimex';
+                        break;
+                    case 'COMPUTRON':
+                        $plantilla = 'solicitar_vacaciones_COMPUTRON';
+                        break;
+                    default:
+                        $plantilla = 'solicitar_vacaciones_cartimex';
+                        break;
+                }
+
                 // Enviar email
                 $mail = $emailService->enviar(
                     $destinatarios,
                     'Solicitud de Vacaciones -> ' . $empleado,
                     $datos,
-                    'vacaciones',
+                    $plantilla,
                     null,
                     "Solicitud de Vacaciones",
                     [],
                     // $params["userdata"]["empresa_name"]
-                    $params["userdata"]["empleado_empresa"]
+                    $empresa
                 );
 
                 $params['ID'] = $result['params'][':ID'] ?? null;
@@ -165,7 +158,7 @@ class vacaciones extends Controller
     {
         // return $params;
         $solicitudID = $params['ID'];
-        
+
         $empleado = $params["userdata"]['nombre'];
         $departamento = $params["userdata"]['EMPLEADO_DEPARTAMENTO_NOMBRE'];
         $cedula = $params["DATOS_EMPLEADO"]['Cedula'];
@@ -334,6 +327,11 @@ class vacaciones extends Controller
 
     function Anular_Solicitud_Vacaciones()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+
         $params = $this->getJsonInput();
 
         $result = $this->model->Anular_Solicitud_Vacaciones($params);
