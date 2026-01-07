@@ -6,16 +6,16 @@
             <table width="600" cellpadding="0" cellspacing="0"
                 style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
 
-                <!-- Header con gradiente verde -->
+                <!-- Header con gradiente rojo -->
                 <tr>
                     <td
-                        style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 30px 40px; text-align: center;">
+                        style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 30px 40px; text-align: center;">
                         <h1
                             style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            ✅ Solicitud de Vacaciones Aprobada
+                            ❌ Solicitud de Vacaciones Rechazada
                         </h1>
-                        <p style="color: #e8f8f5; margin: 10px 0 0 0; font-size: 14px;">
-                            Tu solicitud ha sido procesada exitosamente
+                        <p style="color: #fadbd8; margin: 10px 0 0 0; font-size: 14px;">
+                            Tu solicitud ha sido revisada
                         </p>
                     </td>
                 </tr>
@@ -30,15 +30,15 @@
                         </p>
 
                         <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 30px 0;">
-                            Nos complace informarte que tu solicitud de vacaciones ha sido <strong
-                                style="color: #27ae60;">APROBADA</strong>.
+                            Lamentamos informarte que tu solicitud de vacaciones ha sido <strong
+                                style="color: #e74c3c;">RECHAZADA</strong>.
                         </p>
 
                         <!-- Tabla de detalles con diseño mejorado -->
                         <table width="100%" cellpadding="0" cellspacing="0"
-                            style="border: 2px solid #27ae60; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
+                            style="border: 2px solid #e74c3c; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
                             <tr>
-                                <td colspan="2" style="background-color: #27ae60; padding: 15px; text-align: center;">
+                                <td colspan="2" style="background-color: #e74c3c; padding: 15px; text-align: center;">
                                     <h3 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 600;">
                                         📋 Detalles de tu Solicitud
                                     </h3>
@@ -67,9 +67,9 @@
                                 </td>
                                 <td style="padding: 15px 20px; border-bottom: 1px solid #e9ecef;">
                                     <span
-                                        style="color: #7f8c8d; font-size: 13px; display: block; margin-bottom: 5px;">APROBADO
+                                        style="color: #7f8c8d; font-size: 13px; display: block; margin-bottom: 5px;">RECHAZADO
                                         POR</span>
-                                    <strong style="color: #2c3e50; font-size: 16px;">✍️ {{aprobado_por}}</strong>
+                                    <strong style="color: #2c3e50; font-size: 16px;">✍️ {{rechazado_por}}</strong>
                                 </td>
                             </tr>
                         </table>
@@ -78,26 +78,43 @@
                         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
                             <tr>
                                 <td align="center"
-                                    style="padding: 20px; background: linear-gradient(135deg, #27ae60 0%, #229954 100%); border-radius: 8px;">
+                                    style="padding: 20px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 8px;">
                                     <p
                                         style="color: #ffffff; font-size: 20px; margin: 0; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                        🎉 Estado: {{estado}}
+                                        ❌ Estado: {{estado}}
                                     </p>
                                 </td>
                             </tr>
                         </table>
 
-                        <!-- Nota importante -->
+                        <!-- Motivo del rechazo -->
                         <table width="100%" cellpadding="0" cellspacing="0"
-                            style="background-color: #e8f8f5; border-left: 4px solid #27ae60; border-radius: 4px; margin-bottom: 25px;">
+                            style="background-color: #fadbd8; border-left: 4px solid #e74c3c; border-radius: 4px; margin-bottom: 25px;">
                             <tr>
                                 <td style="padding: 20px;">
-                                    <p style="margin: 0 0 10px 0; color: #27ae60; font-size: 15px; font-weight: 600;">
-                                        📌 Nota Importante
+                                    <p style="margin: 0 0 12px 0; color: #e74c3c; font-size: 15px; font-weight: 600;">
+                                        📝 Motivo del Rechazo
                                     </p>
-                                    <p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">
-                                        Por favor, asegúrate de coordinar con tu equipo antes de tu ausencia.
-                                        Recuerda dejar pendientes organizados y contactos de respaldo si es necesario.
+                                    <p
+                                        style="margin: 0; color: #2c3e50; font-size: 15px; line-height: 1.6; font-style: italic; background-color: #ffffff; padding: 15px; border-radius: 4px;">
+                                        "{{motivo_rechazo}}"
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Próximos pasos -->
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                            style="background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 25px;">
+                            <tr>
+                                <td style="padding: 20px;">
+                                    <p style="margin: 0 0 10px 0; color: #856404; font-size: 15px; font-weight: 600;">
+                                        💡 Próximos Pasos
+                                    </p>
+                                    <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
+                                        Si tienes preguntas sobre este rechazo o deseas solicitar nuevamente vacaciones,
+                                        por favor coordina con tu jefe directo o contacta al departamento de Recursos
+                                        Humanos.
                                     </p>
                                 </td>
                             </tr>
@@ -105,7 +122,7 @@
 
                         <!-- Mensaje de cierre -->
                         <p style="color: #555; font-size: 14px; line-height: 1.6; margin: 0;">
-                            ¡Disfruta tus vacaciones! 🌴
+                            Quedamos a tu disposición para cualquier aclaración. 🤝
                         </p>
 
                     </td>
@@ -116,7 +133,7 @@
                     <td
                         style="background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
                         <p style="color: #95a5a6; font-size: 12px; margin: 0; line-height: 1.5;">
-                            Si tienes alguna pregunta sobre esta solicitud de vacaciones,<br>
+                            Si tienes alguna pregunta sobre esta decisión,<br>
                             por favor contacta al departamento de <strong>Recursos Humanos</strong>.
                         </p>
                     </td>

@@ -224,7 +224,7 @@ class OpcionesModel extends Model
     function GetUsuariosSgo()
     {
         try {
-            $sql = "SELECT  * FROM SERIESUSR where anulado = 0 
+            $sql = "SELECT  * FROM SERIESUSR where anulado = 0 order by nombre 
                 --and usrid not in (select usuario_id from SGO_USUARIO_APROBADORES)
             ";
             $params = [];

@@ -2,6 +2,7 @@
 // =====================================================
 // ARCHIVO: config/config.php
 // =====================================================
+
 /**
  * Configuración principal de la aplicación
  */
@@ -90,7 +91,18 @@ define('TOKEN_EXPIRATION', 76 * 60 * 60); // 76 horas
 // define('ROOT_PATH', dirname(__DIR__));
 
 // Configuración de archivos
-define('UPLOAD_PATH', ROOT_PATH . '/sgo_docs/');
+if (DIRECTORY_SEPARATOR === '\\') { // Windows
+    $uploadPath = 'C:\\xampp\\htdocs\\sgo_docs\\';
+    if (!is_dir($uploadPath)) {
+        mkdir($uploadPath, 0755, true);
+    }
+} else {
+    $uploadPath = '/var/www/html/sgo_docs/'; // Asumiendo Apache en Linux
+}
+$downloadPath = $protocol . '://' . $host . '/sgo_docs/';
+
+define('UPLOAD_PATH', $uploadPath);
+define('DOWNLOAD_PATH', $downloadPath);
 define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB
 
 // Configurar zona horaria
