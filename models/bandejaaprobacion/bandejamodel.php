@@ -22,18 +22,14 @@ class BandejaModel extends Model
 		}
 	}
 
-<<<<<<< HEAD
 	//** APROBACION_FACTURAS */
 
-=======
->>>>>>> 4db3c9b6300611284d71e4db65838d83d4cd0838
 	function GetFacturasAprobacion($params)
 	{
 		try {
 			$inicio = date('Ym01');
 			$fin = date('Ymd');
 
-<<<<<<< HEAD
 			$sql = "
 				DECLARE @monto_aprobacion DECIMAL(18,2);
 				SELECT  @monto_aprobacion = valor FROM CARTIMEX..SIS_PARAMETROS 
@@ -41,9 +37,6 @@ class BandejaModel extends Model
 			
 			
 				SELECT 
-=======
-			$sql = "SELECT 
->>>>>>> 4db3c9b6300611284d71e4db65838d83d4cd0838
 				ID_factura,
 				factura_secuencia = secuencia,
 				factura_autorizacion = Autorizacion,
@@ -124,11 +117,6 @@ class BandejaModel extends Model
 		}
 	}
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 4db3c9b6300611284d71e4db65838d83d4cd0838
 	function GetFacturasDocumentosEspeciales($cedula)
 	{
 
@@ -164,7 +152,6 @@ class BandejaModel extends Model
 		}
 	}
 
-<<<<<<< HEAD
 	function GetUsuariosSgo()
 	{
 		try {
@@ -254,49 +241,10 @@ class BandejaModel extends Model
 			return [
 				'success' => false,
 				'error' => 'Error en la consulta: ' . $e->getMessage()
-=======
-
-
-	function GetVacacionesAprobacion($data = [])
-	{
-		try {
-
-			$sql = "SELECT distinct v.estado as Estado , e.Nombre as Empleado , v.Dia_inicio , v.Dia_fin , v.Dia_regreso ,
-			d.Nombre as Departamento , e.email , v.Periodo , e.Código as Cedula , Dias_pendientes , Dias_solicitados
-			, e.FechaIngreso , fu.Nombre as Cargo
-            , v.ID
-            from SGO_VACACIONES_SOLICITADAS_EMPLEADOS v 
-            inner join EMP_EMPLEADOS E on v.EmpleadoID = e.ID
-			inner join SIS_DEPARTAMENTOS D on d.ID = E.DepartamentoID
-			inner join SERIESUSR US on us.EmpleadoId = e.ID
-			inner join EMP_EMPLEADOS JF on jf.ID = e.PadreID
-			inner join SERIESUSR U on U.EmpleadoId = JF.ID
-			inner join EMP_FUNCIONES fu on fu.ID = e.FunciónID
-            where U.usrid = :usrid";
-
-			$params = [
-
-				':usrid' => $data['usrid'] ?? null,
-
-			];
-
-			$stmt = $this->query($sql, $params);
-
-
-			return $stmt;
-
-		} catch (Exception $e) {
-			$this->logError("Error en GetVacacionesAprobacion: " . $e->getMessage());
-			error_log("Exception in GetVacacionesAprobacion: " . $e->getMessage());
-			return [
-				'success' => false,
-				'error' => $e->getMessage()
->>>>>>> 4db3c9b6300611284d71e4db65838d83d4cd0838
 			];
 		}
 	}
 
-<<<<<<< HEAD
 	function GuardarPreaprobacion($params)
 	{
 
@@ -325,122 +273,11 @@ class BandejaModel extends Model
 			return [
 				'success' => false,
 				'error' => 'Error en la consulta: ' . $e->getMessage()
-=======
-
-
-
-	function GetVacacionesAprobar($data = [])
-	{
-		try {
-
-			$sql = "UPDATE  SGO_VACACIONES_SOLICITADAS_EMPLEADOS set estado = :Estado ,
-			Aprobado_date = GETDATE() ,
-			Aprobado_por = :Creado_Por
-			where ID = :ID";
-
-			$params = [
-				':Estado' => $data['Estado'] ?? null,
-				':ID' => $data['ID'] ?? null,
-				':Creado_Por' => $data['Creado_Por'] ?? null
-			];
-
-			$stmt = $this->db->execute($sql, $params);
-
-			// Enviar email de confirmación si la actualización fue exitosa
-			if ($stmt['success']) {
-				try {
-
-					$emailService = new EmailService();
-
-					// Generar PDF de aprobación
-					$pdfResult = $this->generarPDFAprobacion($data);
-
-					$pdfPath = null;
-					if ($pdfResult['success']) {
-						// Guardar PDF temporalmente
-						$tempDir = sys_get_temp_dir();
-						$pdfPath = $tempDir . '/' . $pdfResult['filename'];
-						file_put_contents($pdfPath, $pdfResult['pdfData']);
-						error_log("[GetVacacionesAprobar] PDF generado: " . $pdfPath);
-					} else {
-						error_log("[GetVacacionesAprobar] Error generando PDF: " . $pdfResult['error']);
-					}
-
-					// Preparar destinatarios
-					$destinatarios = [
-						$data['email_empleado'] ?? 'fdelaese@cartimex.com',
-						"fdelaese@cartimex.com", // Email de prueba en dominio Cartimex
-						"kfranco@cartimex.com" // Email de prueba en dominio Cartimex
-					];
-
-					// Datos para la plantilla de vacaciones
-					$datos = [
-						'empleado_nombre' => $data['Empleado'] ?? 'Empleado',
-						'fecha_inicio' => $data['Dia_inicio'] ?? '',
-						'fecha_fin' => $data['Dia_fin'] ?? '',
-						'fecha_regreso' => $data['Dia_regreso'] ?? '',
-						'aprobado_por' => $data['Creado_Por'],
-						'estado' => $data['Estado'] == 1 ? 'APROBADA' : 'PENDIENTE'
-					];
-
-					// Log para debug
-					error_log("[GetVacacionesAprobar] Enviando email a: " . json_encode($destinatarios));
-					error_log("[GetVacacionesAprobar] Datos del email: " . json_encode($datos));
-
-					// Preparar documentos adjuntos
-					$documentos = [];
-					if ($pdfPath && file_exists($pdfPath)) {
-						$documentos[] = $pdfPath;
-					}
-
-					// Enviar email con PDF adjunto
-					$mail = $emailService->enviar(
-						$destinatarios,
-						'Solicitud de Vacaciones ' . ($datos['estado'] == 'APROBADA' ? 'Aprobada' : 'Actualizada'),
-						$datos,
-						'vacaciones', // Template de vacaciones
-						null,
-						"Solicitud de Vacaciones - SGO",
-						$documentos, // Adjuntar PDF
-						$data["userdata"]["empresa_name"] ?? 'SGO'
-					);
-
-					// Eliminar archivo temporal
-					if ($pdfPath && file_exists($pdfPath)) {
-						unlink($pdfPath);
-						error_log("[GetVacacionesAprobar] PDF temporal eliminado");
-					}
-
-					error_log("[GetVacacionesAprobar] Resultado del envío: " . ($mail ? 'EXITOSO' : 'FALLIDO'));
-
-					// Agregar información del email al resultado
-					$stmt['email_sent'] = true;
-					$stmt['email_info'] = $mail;
-					$stmt['pdf_generated'] = $pdfResult['success'];
-				} catch (Exception $e) {
-					error_log("Error enviando email de vacaciones: " . $e->getMessage());
-					// No fallar la operación si el email falla
-					$stmt['email_sent'] = false;
-					$stmt['email_error'] = $e->getMessage();
-				}
-			}
-
-			return $stmt;
-
-		} catch (Exception $e) {
-			$this->logError("Error en GetVacacionesAprobar: " . $e->getMessage());
-			error_log("Exception in GetVacacionesAprobar: " . $e->getMessage());
-			return [
-				'success' => false,
-				'error' => $e->getMessage()
->>>>>>> 4db3c9b6300611284d71e4db65838d83d4cd0838
 			];
 		}
 	}
 
-<<<<<<< HEAD
 	//********************************** */
-=======
 
 
 
@@ -943,5 +780,4 @@ class BandejaModel extends Model
 			];
 		}
 	}
->>>>>>> 4db3c9b6300611284d71e4db65838d83d4cd0838
 }
