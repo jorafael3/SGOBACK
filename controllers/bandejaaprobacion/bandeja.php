@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '../../../libs/JwtHelper.php';
-// require_once __DIR__ . '/../models/empresamodel.php';
+require_once __DIR__ . '../../../libs/EmailService.php';
 
 class Bandeja extends Controller
 {
@@ -10,6 +10,8 @@ class Bandeja extends Controller
         $this->folder = 'bandejaaprobacion/'; // Especifica la carpeta donde está el modelo
         $this->loadModel('bandeja'); // Cargar el modelo correcto
     }
+
+    //*** BANDEJA FACTURAS */
 
     function GetFacturasAprobacion()
     {
@@ -91,11 +93,55 @@ class Bandeja extends Controller
 
         $result = $this->model->GuardarAprobacionRegular($data);
 
+
         if ($result['success']) {
+            try {
+                $emailService = new EmailService();
+                // Preparar destinatarios
+                $destinatarios = [];
+                if ($data["factura"]["solicitado_por_usuario_email"] != "") {
+                    $destinatarios[] = $data["factura"]["solicitado_por_usuario_email"];
+                }
+
+                for ($i = 0; $i < count($data["usuarioEmail"]); $i++) {
+                    if ($data["usuarioEmail"][$i]["email_sgo"] != "") {
+                        $destinatarios[] = $data["usuarioEmail"][$i]["email_sgo"];
+                    }
+                }
+
+
+                // Datos para la plantilla
+                $datos = [
+                    'solicitante' => $data['factura']["solicitado_por_usuario_nombre"] ?? 'Usuario',
+                    'solicitud' => $data['factura']["ID_factura"] ?? '0000',
+                    'numero_factura' => $data['factura']["factura_secuencia"] ?? '0000',
+                    'fecha_solicitud' => $data['factura']["factura_fecha_solicitud"] ?? '00/00/0000',
+                    'proveedor' => $data['factura']["factura_proveedor"] ?? 'Proveedor',
+                    'valor_total' => '$' . number_format($data['factura']["valor_total"] ?? 0, 2),
+                    'Aprobador' => $data['userdata']["nombre"] ?? 'Aprobador',
+                    "comentario" => $data['comentario'] ?? ''
+                ];
+                // Enviar email
+                $mail = $emailService->enviar(
+                    $destinatarios,
+                    'Factura Aprobada: ' . $data['factura']["factura_secuencia"],
+                    $datos,
+                    'factura_aprobada',
+                    null,
+                    "Factura Aprobada " . $data['factura']["Empresa"],
+                    [],
+                    $data["factura"]["Empresa"]
+                );
+            } catch (Exception $e) {
+                error_log("Error enviando email: " . $e->getMessage());
+            }
+
             $this->jsonResponse([
                 'success' => true,
                 "message" => "Aprobación guardada correctamente",
                 'data' => $result,
+                "email" => $mail,
+                "destinatarios" => $destinatarios
             ], 200);
         } else {
             $this->jsonResponse([
@@ -117,6 +163,66 @@ class Bandeja extends Controller
         $result = $this->model->GuardarPreaprobacion($data);
 
         if ($result['success']) {
+
+            try {
+                $emailService = new EmailService();
+                // Preparar destinatarios
+                $destinatarios = [];
+                if ($data["factura"]["solicitado_por_usuario_email"] != "") {
+                    $destinatarios[] = $data["factura"]["solicitado_por_usuario_email"];
+                }
+
+                for ($i = 0; $i < count($data["usuarioEmail"]); $i++) {
+                    if ($data["usuarioEmail"][$i]["email_sgo"] != "") {
+                        $destinatarios[] = $data["usuarioEmail"][$i]["email_sgo"];
+                    }
+                }
+
+                // Datos para la plantilla
+                $datos = [
+                    'solicitante' => $data['factura']["solicitado_por_usuario_nombre"] ?? 'Usuario',
+                    'solicitud' => $data['factura']["ID_factura"] ?? '0000',
+                    'numero_factura' => $data['factura']["factura_secuencia"] ?? '0000',
+                    'fecha_solicitud' => $data['factura']["factura_fecha_solicitud"] ?? '00/00/0000',
+                    'proveedor' => $data['factura']["factura_proveedor"] ?? 'Proveedor',
+                    'valor_total' => '$' . number_format($data['factura']["valor_total"] ?? 0, 2),
+                    'PreAprobador' => $data['userdata']["nombre"] ?? 'Aprobador',
+                    'Aprobador_Principal' => $data['usuarioPreaprobacion']["nombre"] ?? 'Aprobador',
+                    "comentario" => $data['comentario'] ?? ''
+                ];
+                // Enviar email
+                $mail = $emailService->enviar(
+                    $destinatarios,
+                    'Factura PreAprobada: ' . $data['factura']["factura_secuencia"],
+                    $datos,
+                    'factura_preaprobada',
+                    null,
+                    "Factura PreAprobada " . $data['factura']["Empresa"],
+                    [],
+                    $data["factura"]["Empresa"]
+                );
+
+
+                $destinatarios = [];
+                if ($data["usuarioPreaprobacion"]["nombre"] != "") {
+                    $destinatarios[] = $data["usuarioPreaprobacion"]["email_empresa"];
+                }
+
+                $mail = $emailService->enviar(
+                    $destinatarios,
+                    'Factura Por Aprobar: ' . $data['factura']["factura_secuencia"],
+                    $datos,
+                    'factura_preaprobada_aprobador_principal',
+                    null,
+                    "Factura Por Aprobar " . $data['factura']["Empresa"],
+                    [],
+                    $data["factura"]["Empresa"]
+                );
+            } catch (Exception $e) {
+                error_log("Error enviando email: " . $e->getMessage());
+            }
+
+
             $this->jsonResponse([
                 'success' => true,
                 "message" => "Aprobación guardada correctamente",
@@ -131,7 +237,70 @@ class Bandeja extends Controller
         }
     }
 
-    
+    function RechazarFactura()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
+        if (!$jwtData) {
+            return; // La respuesta de error ya fue enviada automáticamente
+        }
+        $data = $this->getJsonInput();
+
+
+        $result = $this->model->RechazarFactura($data);
+
+        if ($result['success']) {
+
+            try {
+                $emailService = new EmailService();
+                // Preparar destinatarios
+                $destinatarios = [];
+                if ($data["factura"]["solicitado_por_usuario_email"] != "") {
+                    $destinatarios[] = $data["factura"]["solicitado_por_usuario_email"];
+                }
+                // Datos para la plantilla
+                $datos = [
+                    'solicitante' => $data['factura']["solicitado_por_usuario_nombre"] ?? 'Usuario',
+                    'solicitud' => $data['factura']["ID_factura"] ?? '0000',
+                    'numero_factura' => $data['factura']["factura_secuencia"] ?? '0000',
+                    'fecha_solicitud' => $data['factura']["factura_fecha_solicitud"] ?? '00/00/0000',
+                    'proveedor' => $data['factura']["factura_proveedor"] ?? 'Proveedor',
+                    'valor_total' => '$' . number_format($data['factura']["valor_total"] ?? 0, 2),
+                    'Rechazado_por' => $data['userdata']["nombre"] ?? 'Aprobador',
+                    'comentario' => $data['comentario'] ?? 'Sin comentario',
+                ];
+                // Enviar email
+                $mail = $emailService->enviar(
+                    $destinatarios,
+                    'Factura Rechazada: ' . $data['factura']["factura_secuencia"],
+                    $datos,
+                    'factura_rechazada',
+                    null,
+                    "Factura Rechazada " . $data['factura']["Empresa"],
+                    [],
+                    $data["factura"]["Empresa"]
+                );
+            } catch (Exception $e) {
+                error_log("Error enviando email: " . $e->getMessage());
+            }
+
+
+            $this->jsonResponse([
+                'success' => true,
+                "message" => "Aprobación guardada correctamente",
+                'data' => $result,
+            ], 200);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                "message" => "Error al guardar la aprobación",
+                'data' => $result,
+            ], 200);
+        }
+    }
+
+    //********************************************/
+    //*** BANDEJA VACACIONES */
+
     function GetVacacionesAprobacion()
     {
         $jwtData = $this->authenticateAndConfigureModel(2);
@@ -152,7 +321,6 @@ class Bandeja extends Controller
             ], 200);
         }
     }
-
 
     function GetVacacionesAprobar()
     {
@@ -175,10 +343,6 @@ class Bandeja extends Controller
         }
     }
 
-
-
-
-
     function GetVacacionesRechazadas()
     {
         $jwtData = $this->authenticateAndConfigureModel(2);
@@ -200,8 +364,6 @@ class Bandeja extends Controller
         }
     }
 
-
-
     function GenerarPDFVacacion()
     {
         $jwtData = $this->authenticateAndConfigureModel(2);
@@ -222,5 +384,7 @@ class Bandeja extends Controller
             ], 200);
         }
     }
+
+    //********************************************/
 
 }

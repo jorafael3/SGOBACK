@@ -1,4 +1,5 @@
 <?php
+
 /**
  * EmailService - Servicio simple de envío de emails con PHPMailer
  */
@@ -57,24 +58,14 @@ class EmailService
             $this->mail->clearAttachments();
 
             // Setear remitente
-            $this->mail->setFrom('info@sgo.com', "SGO " . $nombreRemitente);
+            $this->mail->setFrom('sgo@cartimex.com', "SGO " . $nombreRemitente);
 
-            // Agregar destinatarios
-            if (is_string($destinatarios)) {
-                $destinatarios = [$destinatarios];
-            }
 
-            if (is_array($destinatarios)) {
-                $first = true;
-                foreach ($destinatarios as $email) {
-                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                        if ($first) {
-                            $this->mail->addAddress($email);
-                            $first = false;
-                        } else {
-                            $this->mail->addBCC($email);
-                        }
-                    }
+            for ($i = 0; $i < count($destinatarios); $i++) {
+                if ($i == 0) {
+                    $this->mail->addAddress($destinatarios[$i]);
+                } else {
+                    $this->mail->addCC($destinatarios[$i]);
                 }
             }
 
@@ -113,7 +104,6 @@ class EmailService
             }
 
             return $resultado;
-
         } catch (Exception $e) {
             error_log("[EmailService] Excepción: " . $e->getMessage());
             return false;
@@ -141,7 +131,7 @@ class EmailService
         // Agregar header y footer según la empresa
         $header = $this->generarHeader($empresa);
         $footer = $this->generarFooter($empresa);
-        $html = $header . $html . $footer;
+        $html = $header . '<div style="padding: 20px;">' . $html . '</div>' . $footer;
 
         // Reemplazar variables {{variable}}
         foreach ($datos as $clave => $valor) {
@@ -208,14 +198,12 @@ class EmailService
 
         $headers = [
             'cartimex' => '
-                <div style="background: linear-gradient(135deg, #1a5490 0%, #2980b9 100%); padding: 0; margin: 0; text-align: center;">
+                <div style="background: linear-gradient(135deg, #8cf572ff 0%, #57dc3dff 100%); padding: 0; margin: 0; text-align: center;">
                     <!-- Logo y Header -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #1a5490 0%, #2980b9 100%);">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #8cf572ff 0%, #57dc3dff 100%);">
                         <tr>
                             <td style="padding: 30px 20px; text-align: center;">
-                                <img src="https://www.cartimex.com/assets/img/logo200.png" alt="CARTIMEX" style="max-width: 150px; height: auto; margin-bottom: 15px;">
-                                <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 32px; font-weight: bold;">CARTIMEX</h1>
-                                <p style="color: #ecf0f1; margin: 0; font-size: 14px; font-weight: 300;">Comercializadora Internacional de Servicios</p>
+                                <h1 style="color: #000000ff; margin: 0 0 10px 0; font-size: 32px; font-weight: bold;">CARTIMEX</h1>
                             </td>
                         </tr>
                     </table>
@@ -223,14 +211,12 @@ class EmailService
                 <div style="background-color: #ffffff; height: 4px; background: linear-gradient(90deg, #1a5490 0%, #e74c3c 100%);"></div>
             ',
             'computron' => '
-                <div style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); padding: 0; margin: 0; text-align: center;">
+                <div style="background: linear-gradient(135deg, #ffc117ff 0%, #f29027ff 100%); padding: 0; margin: 0; text-align: center;">
                     <!-- Logo y Header -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #ffc117ff 0%, #f29027ff 100%);">
                         <tr>
                             <td style="padding: 30px 20px; text-align: center;">
-                                <img src="https://www.computron.com.ec/wp-content/uploads/2021/01/LOGO-EDITABLE.webp" alt="COMPUTRON" style="max-width: 150px; height: auto; margin-bottom: 15px;">
-                                <h1 style="color: #3498db; margin: 0 0 10px 0; font-size: 32px; font-weight: bold;">COMPUTRON</h1>
-                                <p style="color: #95a5a6; margin: 0; font-size: 14px; font-weight: 300;">Soluciones Tecnológicas Integradas</p>
+                                <h1 style="color: #000000ff; margin: 0 0 10px 0; font-size: 32px; font-weight: bold;">COMPUTRON</h1>
                             </td>
                         </tr>
                     </table>
@@ -276,23 +262,20 @@ class EmailService
 
         $footers = [
             'cartimex' => '<div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #ddd; margin-top: 30px;">
-                <p style="margin: 5px 0; color: #666; font-size: 12px;"><strong>CARIEX</strong></p>
-                <p style="margin: 5px 0; color: #888; font-size: 11px;">Teléfono: +506 XXXX-XXXX | Email: info@cariex.com</p>
-                <p style="margin: 5px 0; color: #aaa; font-size: 10px;">© 2025 CARIEX. Todos los derechos reservados.</p>
+                <p style="margin: 5px 0; color: #666; font-size: 12px;"><strong>SGO CARTIMEX</strong></p>
+                <p style="margin: 5px 0; color: #aaa; font-size: 10px;">© ' . date('Y') . ' SGO CARTIMEX. Todos los derechos reservados.</p>
             </div>',
             'computron' => '<div style="background-color: #ecf0f1; padding: 20px; text-align: center; border-top: 1px solid #bdc3c7; margin-top: 30px;">
-                <p style="margin: 5px 0; color: #2c3e50; font-size: 12px;"><strong>COMPUTRON</strong></p>
+                <p style="margin: 5px 0; color: #2c3e50; font-size: 12px;"><strong>SGO COMPUTRON</strong></p>
                 <p style="margin: 5px 0; color: #34495e; font-size: 11px;">Teléfono: +506 XXXX-XXXX | Email: soporte@computron.com</p>
-                <p style="margin: 5px 0; color: #7f8c8d; font-size: 10px;">© 2025 COMPUTRON. Todos los derechos reservados.</p>
+                <p style="margin: 5px 0; color: #7f8c8d; font-size: 10px;">© ' . date('Y') . ' SGO COMPUTRON. Todos los derechos reservados.</p>
             </div>',
             'sgo' => '<div style="background-color: #ecf0f1; padding: 20px; text-align: center; border-top: 1px solid #bdc3c7; margin-top: 30px;">
                 <p style="margin: 5px 0; color: #34495e; font-size: 12px;"><strong>SGO - Sistema de Gestión Operacional</strong></p>
-                <p style="margin: 5px 0; color: #7f8c8d; font-size: 11px;">Teléfono: +506 XXXX-XXXX | Email: soporte@sgo.com</p>
-                <p style="margin: 5px 0; color: #95a5a6; font-size: 10px;">© 2025 SGO. Todos los derechos reservados.</p>
+                <p style="margin: 5px 0; color: #95a5a6; font-size: 10px;">© ' . date('Y') . ' SGO. Todos los derechos reservados.</p>
             </div>'
         ];
 
         return isset($footers[$empresa]) ? $footers[$empresa] : $footers['sgo'];
     }
 }
-
