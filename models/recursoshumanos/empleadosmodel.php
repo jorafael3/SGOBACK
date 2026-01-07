@@ -27,7 +27,8 @@ class EmpleadosModel extends Model
                 CASE WHEN e.ProvisionaFR = 1 THEN 'SI' ELSE 'NO' END AS PFondos , isnull(vd.Estado, 0) as Estado 
 				, FU.Nombre AS Cargo , e.Genero ,  isnull(e.foto_perfil, '') as foto_perfil, e.Teléfono3 as Telefono2  ,
 				e.Dirección as Direccion2 , e.email_personal  as Email2 , 
-				e.EstadoCivil  as EstadoCivil2
+				e.EstadoCivil  as EstadoCivil2,
+                e.FechaIngreso
                 from EMP_EMPLEADOS e 
                 inner join EMP_EMPLEADOS j ON e.PadreID = j.ID
                 inner join SIS_DEPARTAMENTOS D on E.DepartamentoID = D.ID
