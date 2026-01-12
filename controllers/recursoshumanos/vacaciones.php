@@ -92,7 +92,7 @@ class vacaciones extends Controller
                 // Preparar destinatarios
                 $destinatarios = [
                     // $jefeCorreo,
-                    // "jalvaradoe3@gmail.com",
+                    "jalvaradoe3@gmail.com",
                     "sistema@cartimex.com"
                 ];
 
