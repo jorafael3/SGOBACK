@@ -254,9 +254,10 @@ class fichaIngreso extends Controller
         $pdf->MultiCell(0, 10, $declaracion, 0, 'C');
         $pdf->Ln(20);
         $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 8, 'FIRMA DEL TRABAJADOR', 0, 1, 'C');
         $pdf->Ln(10);
         $pdf->Cell(0, 0, '___________________________', 0, 1, 'C');
+        $pdf->Ln(3);
+        $pdf->Cell(0, 8, 'FIRMA DEL TRABAJADOR', 0, 1, 'C');
 
 
         // === Guardar PDF ===
