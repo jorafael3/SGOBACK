@@ -9,8 +9,8 @@ class nuevafactura extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->folder = 'proveeduria'; // Especifica la carpeta donde está el modelo
-        $this->loadModel('opciones'); // Cargar el modelo correcto
+        $this->folder = 'proveeduria/facturas/'; // Especifica la carpeta donde está el modelo
+        $this->loadModel('nuevafactura'); // Cargar el modelo correcto
     }
 
     function GetProveedores()

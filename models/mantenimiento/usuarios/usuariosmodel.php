@@ -152,7 +152,7 @@ class UsuariosModel extends Model
     function ActualizarUsuario($data)
     {
         try {
-            if ($data["sessionData"]["empresa"] == "CARTIMEX") {
+            if ($data["empresa"] == "CARTIMEX") {
                 $sql = "UPDATE CARTIMEX..SERIESUSR SET 
                 nombre = :nombre,
                 clave = :clave,
@@ -207,19 +207,21 @@ class UsuariosModel extends Model
         }
     }
 
-    function ActualizarMenusUsuario($usrid, $menus)
+    function ActualizarMenusUsuario($usrid, $menus,$empresa)
     {
         try {
             // Primero eliminar los menús existentes para el usuario
-            $sqlDelete = "DELETE FROM SGO_MENU_USUARIOS WHERE UsuarioId = :usrid";
+            $sqlDelete = "DELETE FROM CARTIMEX..SGO_MENU_USUARIOS WHERE UsuarioId = :usrid";
             $paramsDelete = [':usrid' => $usrid];
             $this->db->execute($sqlDelete, $paramsDelete);
             // Luego insertar los nuevos menús
             foreach ($menus as $menuId) {
-                $sqlInsert = "INSERT INTO SGO_MENU_USUARIOS (UsuarioId, MenuId) VALUES (:usrid, :menu_id)";
+                $sqlInsert = "INSERT INTO CARTIMEX..SGO_MENU_USUARIOS (UsuarioId, MenuId,usuario_empresa) 
+                VALUES (:usrid, :menu_id, :empresa)";
                 $paramsInsert = [
                     ':usrid' => $usrid,
-                    ':menu_id' => $menuId
+                    ':menu_id' => $menuId,
+                    ':empresa' => $empresa
                 ];
                 $this->db->execute($sqlInsert, $paramsInsert);
             }

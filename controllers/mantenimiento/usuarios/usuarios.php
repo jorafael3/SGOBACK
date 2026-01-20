@@ -17,7 +17,7 @@ class Usuarios extends Controller
     function GetUsuarios()
     {
 
-    
+
 
         $jwtData = $this->authenticateAndConfigureModel(2); // 2 = POST requerido
         if (!$jwtData) {
@@ -119,7 +119,7 @@ class Usuarios extends Controller
         // exit;
 
         $ActualizarUsuario = $this->model->ActualizarUsuario($data);
-        $ActualizarMenus = $this->model->ActualizarMenusUsuario($usrid, $menusSeleccionados);
+        $ActualizarMenus = $this->model->ActualizarMenusUsuario($usrid, $menusSeleccionados, $data["empresa"]);
         if ($ActualizarUsuario && $ActualizarUsuario['success']) {
             $ActualizarUsuario['message'] = 'Usuario actualizado exitosamente';
             $this->jsonResponse($ActualizarUsuario, 200);
