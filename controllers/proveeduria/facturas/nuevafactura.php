@@ -253,15 +253,17 @@ class nuevafactura extends Controller
         }
 
         $result = $this->model->Cargar_FacturasSolicitadas();
+        $result["ruta_archivos"] = constant("DOWNLOAD_PATH") . "Cartimex/proveeduria/ingresos_facturas/facturas/";
         if ($result['success']) {
             $this->jsonResponse([
                 'success' => true,
                 'data' => $result["data"],
+                'ruta_archivos' => $result["ruta_archivos"],
             ], 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'message' => $result["message"],
+                'message' => $result,
             ], 200);
         }
     }

@@ -305,7 +305,164 @@ class NuevaFacturaModel extends Model
     function Cargar_FacturasSolicitadas()
     {
         try {
-            $sql = "SELECT * from SGO_PROV_BANCOS_FACTURAS_SUBIDAS WITH (NOLOCK) ORDER BY fecha_creado DESC";
+            $sql = "
+                    DECLARE @monto_aprobacion DECIMAL(18,2);
+					SELECT  @monto_aprobacion = valor FROM CARTIMEX..SIS_PARAMETROS 
+            		WHERE código = 'SGO_PROV_MONTO_APROBACION';
+            
+            WITH BAN_EG as (
+                            SELECT 
+                            acr.DeudaID,
+                            e.Cheque,
+                            e.SGO_ENTREGADO,
+                            e.SGO_FECHA_ENTREGADO,
+                            e.SGO_ENTREGADO_POR,
+                            e.SGO_FIRMADO,
+                            e.SGO_FIRMADO_FECHA,
+                            e.SGO_FIRMADO_POR,
+                            e.SGO_ENTREGADO_CAJA,
+                            e.SGO_ENTREGADO_CAJA_FECHA,
+                            e.SGO_ENTREGADO_CAJA_POR
+                            FROM BAN_EGRESOS e WITH(NOLOCK)
+                            LEFT JOIN ACR_ACREEDORES_DEUDAS acr WITH(NOLOCK)
+                            on acr.DocumentoID = e.ID --and acr.Tipo = 'BAN-EG'
+                            where e.Anulado = 0
+                            union all
+                            SELECT 
+                            acr.DeudaID,
+                            e.Cheque,
+                            e.SGO_ENTREGADO,
+                            e.SGO_FECHA_ENTREGADO,
+                            e.SGO_ENTREGADO_POR,
+                            e.SGO_FIRMADO,
+                            e.SGO_FIRMADO_FECHA,
+                            e.SGO_FIRMADO_POR,
+                            e.SGO_ENTREGADO_CAJA,
+                            e.SGO_ENTREGADO_CAJA_FECHA,
+                            e.SGO_ENTREGADO_CAJA_POR
+                            FROM ACR_RECIBOS e WITH(NOLOCK)
+                            LEFT JOIN ACR_ACREEDORES_DEUDAS acr WITH(NOLOCK)
+                            on acr.DocumentoID = e.ID --and acr.Tipo = 'BAN-EG'
+                            where e.Anulado = 0
+                            union all
+                            SELECT 
+                            acr.DeudaID,
+                            e.Cheque,
+                            e.SGO_ENTREGADO,
+                            e.SGO_FECHA_ENTREGADO,
+                            e.SGO_ENTREGADO_POR,
+                            e.SGO_FIRMADO,
+                            e.SGO_FIRMADO_FECHA,
+                            e.SGO_FIRMADO_POR,
+                            e.SGO_ENTREGADO_CAJA,
+                            e.SGO_ENTREGADO_CAJA_FECHA,
+                            e.SGO_ENTREGADO_CAJA_POR
+                            FROM EMP_ROLES e WITH(NOLOCK)
+                            LEFT JOIN ACR_ACREEDORES_DEUDAS acr WITH(NOLOCK)
+                            on acr.DocumentoID = e.ID --and acr.Tipo = 'BAN-EG'
+                            where e.Anulado = 0
+                        )
+                SELECT
+                FACT_ID = f.ID_factura,
+                FACT_SECUENCIA = f.secuencia,
+                FACT_DETALLE = f.Detalle,
+                FACT_FECHA_FACTURA = f.Fecha_factura,
+                FACT_FECHA_VENCIMIENTO = f.Fecha_Vencimiento,
+
+                FACT_AUTORIZACION = f.Autorizacion,
+                FACT_ARCHIVO = f.Archivo,
+                FACT_FECHA_CREADO = f.Fecha_creado,
+                FACT_PROVEEDOR = f.Proveedor,
+                FACT_SUBTOTAL_15 = f.Subtotal_12,
+                FACT_SUBTOTAL_0 = f.Subtotal_0,
+                FACT_IVA = f.IVA,
+                FACT_TOTAL = f.Total,
+                FACT_RETENIDO = acr.Retenido,
+                FACT_ESTADO = f.Estado,
+                FACT_CREADO_POR = u.usuario,
+                FACT_BUZON = u2.usuario,
+
+                FACT_APROBADO_POR = f.aprobado_por,
+                FACT_APROBADO_FECHA = f.Fecha_aprobacion,
+                FACT_APROBADO_COMENTARIO = f.Nota_aprobado,
+                FACT_RECHAZADO_POR = f.rechazado_por,
+                FACT_RECHAZADO_FECHA = f.fecha_rechazo,
+                FACT_RECHAZADO_COMENTARIO = f.comentario_rechazo,
+                FACT_EMPRESA = f.Empresa,
+
+                FACT_TIPO_GASTO = t.tipo_nombre,
+				FACT_TIPO_GASTO_NECESITA_PREAPROBACION = t.preaprobacion,
+
+                isnull(f.PREAPROBACION,0) as PREAPROBACION,
+				CASE WHEN f.subtotal_0 + f.subtotal_12 >= @monto_aprobacion then 1 else 0 end as FACT_DOCUMENTO_PREAPROBADO_MONTO,
+                FACT_DOCUMENTO_PREAPROBADO = f.PREAPROBADA,
+                FACT_DOCUMENTO_PREAPROBADO_POR = isnull(f.PREAPROBADA_POR,'')	,
+                FACT_DOCUMENTO_PREAPROBADO_FECHA = isnull(f.PREAPROBADA_FECHA,''),
+                FACT_DOCUMENTO_PREAPROBADO_COMENTARIO = isnull(f.PREAPROBADA_COMENTARIO,''),
+
+                FACT_INGRESADA = CASE WHEN isnull(pr.ID,'') = '' THEN 0 ELSE 1 END,
+                FACT_INGRESADA_ID = isnull(pr.ID,''),
+                FACT_INGRESADA_FECHA = pr.CreadoDate,
+                FACT_INGRESADA_POR = pr.CreadoPor,
+
+                PAGO_APROBADO = isnull(acr.SGO_PAGO_APROBACION,0),
+                PAGO_APROBADO_POR = acr.SGO_PAGO_APROBACION_POR,
+                PAGO_APROBADO_FECHA = acr.SGO_PAGO_APROBACION_FECHA,
+                PAGO_APROBADO_COMENTARIO = acr.SGO_PAGO_APROBACION_COMENTARIO,
+
+                PAGO_RECHAZADO = isnull(acr.DESCARTAR,0),
+                PAGO_RECHAZADO_POR = acr.SGO_PAGO_DESCARTADO_POR,
+                PAGO_RECHAZADO_FECHA = acr.SGO_PAGO_DESCARTADO_FECHA,
+                PAGO_RECHAZADO_COMENTARIO = acr.SGO_PAGO_DESCARTADO_COMENTARIO,
+
+                PAGO_GENERADO = isnull(acr.SGO_PAGO_GENERADO,0),
+                PAGO_GENERADO_POR = acr.SGO_PAGO_GENERADO_POR,
+                PAGO_GENERADO_FECHA = acr.SGO_PAGO_GENERADO_FECHA,
+                PAGO_GENERADO_COMENTARIO = acr.SGO_PAGO_GENERADO_COMENTARIO,
+
+                SGO_FIRMADO = isnull(eg.SGO_FIRMADO,0),
+                SGO_FIRMADO_POR = eg.SGO_FIRMADO_POR,
+                SGO_FIRMADO_FECHA = eg.SGO_FIRMADO_FECHA,
+
+                SGO_ENTREGADO_CAJA = isnull(eg.SGO_ENTREGADO_CAJA,0),
+                eg.SGO_ENTREGADO_CAJA_POR,
+                eg.SGO_ENTREGADO_CAJA_FECHA,
+
+                SGO_ENTREGADO = isnull(eg.SGO_ENTREGADO,0),
+                eg.SGO_ENTREGADO_POR,
+                SGO_ENTREGADO_FECHA = eg.SGO_FECHA_ENTREGADO
+
+                FROM SGO_PROV_BANCOS_FACTURAS_SUBIDAS f with(nolock)
+                LEFT JOIN SGO_PROV_BANCOS_FACTURAS_SUBIDAS_TIPOS_GASTO t with(nolock)
+				on t.id = f.TIPO
+                LEFT JOIN PRV_FACTURAS pr  with(nolock)
+                    on pr.acrSerie+'-'+pr.acrSecuencia = f.secuencia
+                    and pr.acrAutorización = f.Autorizacion
+                left join ACR_ACREEDORES_DEUDAS acr  with(nolock)
+                    on acr.DocumentoID = pr.ID
+                left join BAN_EG eg
+                    on eg.DeudaID = acr.ID
+                left join SERIESUSR u with(nolock)
+                    ON (
+                        (ISNUMERIC(f.Creado_por) = 1 
+                        AND u.usrid = f.Creado_por)
+                        OR
+                        (ISNUMERIC(f.Creado_por) = 0 
+                        AND u.usuario = f.Creado_por)
+                    )
+                 left join SERIESUSR u2 with(nolock)
+                    ON (
+                        (ISNUMERIC(f.buzon) = 1 
+                        AND u2.usrid = f.buzon)
+                        OR
+                        (ISNUMERIC(f.buzon) = 0 
+                        AND u2.usuario = f.buzon)
+                    )
+                where 
+                    f.Creado_por = 'JRALVARADO'
+                    or f.Creado_por = '0000000386'
+                ORDER by f.Fecha_creado desc    
+                ";
             $stmt = $this->db->query($sql);
             return $stmt;
         } catch (Exception $e) {
