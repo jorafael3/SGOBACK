@@ -13,6 +13,7 @@ class VerificacionMotosModel extends Model
         }
     }
 
+    // TODO: Agregar Modificaciones de los procedimientos a la base de datos .3
     /**
      * Obtiene las facturas pendientes de verificación de motos
      * @param array $data Datos con información de sesión
@@ -23,12 +24,20 @@ class VerificacionMotosModel extends Model
         try {
             // Extraer datos de sesión
             $usuario = $data["userdata"]['usrid'] ?? null;
+            $fechaInicio = $data["fechaInicio"] ?? null;
+            $fechaFin = $data["fechaFin"] ?? null;
 
             // Ejecutar stored procedure
             $sql = "EXECUTE SGO_LOG_FACTURAS_PENDIENTES_MOTOS 
-                    @usuario = :usuario";
+                    @usuario = :usuario,
+                    @fechaInicio = :fechaInicio,
+                    @fechaFin = :fechaFin";
 
-            $params = [':usuario' => $usuario];
+            $params = [
+                ':usuario' => $usuario,
+                ':fechaInicio' => $fechaInicio,
+                ':fechaFin' => $fechaFin
+            ];
 
             // Usar el método query heredado de Model
             $stmt = $this->query($sql, $params);
@@ -67,6 +76,253 @@ class VerificacionMotosModel extends Model
             ];
         }
     }
+
+    public function Guardar_Centro($param)
+    {
+        try {
+            $tipo = 'VEN-FA';
+            $FACTURA = $param["factura_id"];
+            $comentario = $param["comentario"];
+            $centro = $param["BodegaID"];
+            $recibido_por = $param["usuario"];
+
+            $SELsql = 'SELECT * FROM facturaslistas WHERE factura = :facturaid';
+            $SELparams = [':facturaid' => $FACTURA];
+            $SELstmt = $this->query($SELsql, $SELparams);
+            $cenRecibido = $SELstmt['data'][0]['centro_autorizado'] ?? '';
+            if ($SELstmt && $SELstmt['success'] && count($SELstmt['data']) > 0 && $cenRecibido != '' && $cenRecibido != null) {
+                $sql = "UPDATE facturaslistas 
+                        SET  centro_autorizado = :centro_autorizado , 
+                    centro_autorizado_fecha = getdate() , 
+                    centro_autorizado_por = :centro_autorizado_por , 
+                    centro_autorizado_comentario = :comentario
+                WHERE factura=:facturaid AND Tipo=:tipo";
+
+                $params = [
+                    ':centro_autorizado' => $centro,
+                    ':centro_autorizado_por' => $recibido_por,
+                    ':comentario' => $comentario,
+                    ':facturaid' => $FACTURA,
+                    ':tipo' => $tipo
+                ];
+                $result = $this->db->execute($sql, $params);
+                return $result;
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Factura ya asignada o no encontrada para actualizar centro'
+                ];
+            }
+        } catch (Exception $e) {
+            $this->logError("Error guardando centro: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al guardar centro: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    // SUBIR DATOS SRI, MATRICULA, PLACA, GUIA, Valores MATRICULACION
+    public function Registrar_SRI($param)
+    {
+        try {
+            $Facturaid = $param["FACTURA_ID"];
+            $usuario = $param["usuario"];
+            $Factsql = "SELECT * FROM COMPUTRONSA..FACTURASLISTAS WHERE factura = :factura";
+            $Factparams = [
+                ':factura' => $Facturaid
+            ];
+            $Factstmt = $this->query($Factsql, $Factparams);
+            $sri = $Factstmt['data'][0]['REGISTRO_SRI'] ?? '';
+            if ($sri == 1) {
+                return [
+                    'success' => false,
+                    'message' => 'Ya se encuentra registrado el SRI'
+                ];
+            }
+            $SRIsql = "UPDATE COMPUTRONSA..FACTURASLISTAS set
+                    REGISTRO_SRI = 1,
+                    REGISTRO_SRI_FECHA = GETDATE(),
+                    REGISTRO_SRI_POR = :REGISTRO_SRI_POR
+                WHERE factura = :factura";
+            $SRIparams = [
+                ':REGISTRO_SRI_POR' => $usuario,
+                ':factura' => $Facturaid
+            ];
+            $SRIstmt = $this->db->execute($SRIsql, $SRIparams);
+
+            if ($SRIstmt['success']) {
+                $DOCquery = " SELECT f.Factura, f.acta_entrega, f.documento2_firmado, vf.Detalle
+                    FROM facturaslistas f
+                    LEFT JOIN VEN_FACTURAS vf ON f.factura = vf.ID
+                    WHERE f.factura = :factura";
+                $DOCparams = [':factura' => $Facturaid];
+                $DOCstmt = $this->query($DOCquery, $DOCparams);
+            }
+            return $DOCstmt;
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
+    }
+    public function Registrar_Matricula($param)
+    {
+        $Facturaid = $param["FACTURA_ID"];
+        $usuario = $param["usuario"];
+        $Factquery = "SELECT * FROM 
+                COMPUTRONSA..FACTURASLISTAS
+                WHERE
+                    factura = :factura";
+        $Factparams = [
+            ':factura' => $Facturaid
+        ];
+        $Factstmt = $this->query($Factquery, $Factparams);
+        $matricula = $Factstmt['data'][0]['REGISTRO_MATRICULACION'] ?? '';
+        if ($matricula == 1) {
+            return [
+                'success' => false,
+                'message' => 'Ya se encuentra registrado la matricula'
+            ];
+        }
+        $Matriculasql = "UPDATE COMPUTRONSA..FACTURASLISTAS set
+                    REGISTRO_MATRICULACION = 1,
+                    REGISTRO_MATRICULACION_FECHA = GETDATE(),
+                    REGISTRO_MATRICULACION_POR = :REGISTRO_MATRICULACION_POR
+                WHERE factura = :factura";
+        $Matriculacionparams = [
+            ':REGISTRO_MATRICULACION_POR' => $usuario,
+            ':factura' => $Facturaid
+        ];
+        $Matriculastmt = $this->db->execute($Matriculasql, $Matriculacionparams);
+        return $Matriculastmt;
+    }
+    public function Registrar_Placa($param)
+    {
+        $Facturaid = $param["FACTURA_ID"];
+        $placa = $param["placa"];
+        $usuario = $param["usuario"];
+        $Factsql = "SELECT * FROM 
+                COMPUTRONSA..FACTURASLISTAS
+                WHERE
+                    factura = :factura";
+        $Factparams = [
+            ':factura' => $Facturaid
+        ];
+        $Factstmt = $this->query($Factsql, $Factparams);
+        $placa = $Factstmt['data'][0]['placa_moto'] ?? '';
+        if ($placa == 1) {
+            return [
+                'success' => false,
+                'message' => 'Ya se encuentra registrado la placa'
+            ];
+        }
+        $Placasql = "UPDATE COMPUTRONSA..FACTURASLISTAS set
+                    placa_moto = :placa_moto,
+                    PLACA_MOTO_POR = :PLACA_MOTO_POR,
+                    PLACA_MOTO_FECHA = GETDATE()
+                WHERE factura = :factura";
+        $Placaparams = [
+            ':placa_moto' => $placa,
+            ':PLACA_MOTO_POR' => $usuario,
+            ':factura' => $Facturaid
+        ];
+        $Placastmt = $this->db->execute($Placasql, $Placaparams);
+        return $Placastmt;
+    }
+    public function Registrar_Guia($param)
+    {
+        $Facturaid = $param["DATOS"]["FacturaID"];
+        $guia = $param["guia"];
+        $usuario = $param["usuario"];
+        $Factsql = "SELECT * FROM 
+                COMPUTRONSA..FACTURASLISTAS
+                WHERE
+                    factura = :factura";
+        $Factparams = [
+            ':factura' => $Facturaid
+        ];
+        $Factstmt = $this->query($Factsql, $Factparams);
+        $guiaReg = $Factstmt['data'][0]['REGISTRO_GUIA_MOTO'] ?? '';
+        if ($guiaReg == 1) {
+            return [
+                'success' => false,
+                'message' => 'Ya se encuentra registrado la guia'
+            ];
+        }
+        $Guiasql = "UPDATE COMPUTRONSA..FACTURASLISTAS set
+                    REGISTRO_GUIA_MOTO = :REGISTRO_GUIA_MOTO,
+                    REGISTRO_GUIA_POR = :REGISTRO_GUIA_POR,
+                    REGISTRO_GUIA_FECHA = GETDATE()
+                WHERE factura = :factura";
+        $Guiaparams = [
+            ':REGISTRO_GUIA_MOTO' => $guia,
+            ':REGISTRO_GUIA_POR' => $usuario,
+            ':factura' => $Facturaid
+        ];
+        $Guiastmt = $this->db->execute($Guiasql, $Guiaparams);
+        return $Guiastmt;
+    }
+    public function Registrar_Matricualacion_Valores($param)
+    {
+        try {
+            $Facturaid = $param["FACTURA_ID"];
+            $REG_MTV = $param["REG_MTV"];
+            $REG_PLV = $param["REG_PLV"];
+            $REG_CRE = $param["REG_CRE"];
+            $REG_HON = $param["REG_HON"];
+            $usuario = $param['usuario'];
+
+            $placaQuery = "SELECT * FROM COMPUTRONSA..FACTURASLISTAS WHERE factura = :factura";
+            $placaParams = [
+                ':factura' => $Facturaid
+            ];
+            $Placastmt = $this->query($placaQuery, $placaParams);
+            $placa = $Placastmt['data'][0]['REGISTRO_MATRICULACION_VALORES'] ?? '';
+            if ($placa == 1) {
+                return [
+                    'success' => false,
+                    'message' => 'Ya se encuentran registrados los valores de matriculación'
+                ];
+            }
+            $Matriculacionsql = "UPDATE COMPUTRONSA..FACTURASLISTAS set
+                    REGISTRO_MATRICULACION_VALORES = 1,
+                    REGISTRO_MATRICULACION_VALORES_FECHA = GETDATE(),
+                    REGISTRO_MATRICULACION_VALORES_POR = :REGISTRO_MATRICULACION_POR
+                WHERE factura = :factura";
+            $Matriculacionparams = [
+                ':REGISTRO_MATRICULACION_POR' => $usuario,
+                ':factura' => $Facturaid
+            ];
+            $Matriculastmt = $this->db->execute($Matriculacionsql, $Matriculacionparams);
+
+            $query = "INSERT INTO COMPUTRONSA..SGO_MOTOS_VALORES_PAGO
+                    (
+                        factura_id,
+                        matricula,
+                        placa,
+                        certificadp_revision,
+                        honorariosMatriculacion
+                    )VALUES
+                    (
+                        :factura_id,
+                        :matricula,
+                        :placa,
+                        :certificado_revision,
+                        :honorariosMatriculacion
+                    )";
+            $params = [
+                ':factura_id' => $Facturaid,
+                ':matricula' => $REG_MTV,
+                ':placa' => $REG_PLV,
+                ':certificado_revision' => $REG_CRE,
+                ':honorariosMatriculacion' => $REG_HON
+            ];
+            $stmt = $this->db->execute($query, $params);
+            return $stmt;
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
+    }
+    //
 
     /**
      * Obtiene las series disponibles para un producto
@@ -241,7 +497,6 @@ class VerificacionMotosModel extends Model
                 ];
             }
 
-            // Todo exitoso
             return [
                 'success' => true,
                 'mensaje' => 'Datos guardados correctamente',
@@ -533,25 +788,25 @@ class VerificacionMotosModel extends Model
             $factDt = $resultFactDt['data'][0];
 
             // Construir detalle extendido
-            $detex = "SERIE:" . $moto["Serie"] . 
-                     ",MARCA:" . $moto["Marca"] . 
-                     ",MODELO:" . $moto["Modelo"] . 
-                     ",AÑO_MODELO:" . $moto["AÑO_MODELO"] . 
-                     ",CLASE:" . $moto["Clases"] . 
-                     ",MOTOR:" . $moto["Motor"] . 
-                     ",COLOR:" . $moto["Color"] . 
-                     ",CHASIS:" . $moto["Chasis"] . 
-                     ",PRECIO:" . $factDt["Total"] . 
-                     ",ESTADO:" . $moto["estado"] . 
-                     ",CAPACIDAD_PERSONAS: " . $moto["capacidad"] . 
-                     ",TONELAJE:" . $moto["Tonelaje"] . 
-                     ",CILINDRAJE:" . $moto["Cilindraje"] . 
-                     ", RAMV:" . $moto["Ramv"] . 
-                     ",TIPO:" . trim($moto["Tipo"]) . 
-                     ",ORIGEN:" . $moto["PAIS_DE_ORIGEN"] . 
-                     ",TIPO_COMBUSTIBLE:" . $moto["TIPO_DE_COMBUSTIBLE"] . 
-                     ",EJES:" . $moto["EJES"] . 
-                     ",RUEDAS:" . $moto["EJES"];
+            $detex = "SERIE:" . $moto["Serie"] .
+                ",MARCA:" . $moto["Marca"] .
+                ",MODELO:" . $moto["Modelo"] .
+                ",AÑO_MODELO:" . $moto["AÑO_MODELO"] .
+                ",CLASE:" . $moto["Clases"] .
+                ",MOTOR:" . $moto["Motor"] .
+                ",COLOR:" . $moto["Color"] .
+                ",CHASIS:" . $moto["Chasis"] .
+                ",PRECIO:" . $factDt["Total"] .
+                ",ESTADO:" . $moto["estado"] .
+                ",CAPACIDAD_PERSONAS: " . $moto["capacidad"] .
+                ",TONELAJE:" . $moto["Tonelaje"] .
+                ",CILINDRAJE:" . $moto["Cilindraje"] .
+                ", RAMV:" . $moto["Ramv"] .
+                ",TIPO:" . trim($moto["Tipo"]) .
+                ",ORIGEN:" . $moto["PAIS_DE_ORIGEN"] .
+                ",TIPO_COMBUSTIBLE:" . $moto["TIPO_DE_COMBUSTIBLE"] .
+                ",EJES:" . $moto["EJES"] .
+                ",RUEDAS:" . $moto["EJES"];
 
             // Actualizar VEN_FACTURAS_DT
             $sqlUpdate = "UPDATE VEN_FACTURAS_DT 
@@ -781,19 +1036,33 @@ class VerificacionMotosModel extends Model
         }
     }
 
+    // TODO: Agregar Modificaciones de los procedimientos a la base de datos .3
     /**
      * Obtiene las motos pendientes de recibir
      */
     public function Motos_por_recibir($param)
     {
         try {
-            $sql = "SELECT * FROM facturaslistas 
-                    WHERE es_moto = 1 
-                    AND ESTADO = 'VERIFICADA'
-                    AND (recibido IS NULL OR recibido = 0)
-                    ORDER BY fechaVerificado DESC";
+            $usuario = $param['usrid'] ?? '';
+            $fechaInicio = $param["fechaInicio"] ?? null;
+            $fechaFin = $param["fechaFin"] ?? null;
 
-            $result = $this->query($sql, []);
+            // $sql = "SELECT * FROM facturaslistas 
+            //         WHERE es_moto = 1 
+            //         AND ESTADO = 'VERIFICADA'
+            //         AND (recibido IS NULL OR recibido = 0)
+            //         ORDER BY fechaVerificado DESC";
+            $sql = "EXECUTE SGO_FACTURAS_PENDIENTES_MOTOS_POR_RECIBIR 
+                @usuario = :usuario,
+                @fechaInicio = :fechaInicio,
+                @fechaFin = :fechaFin
+                ";
+            $params = [
+                ':usuario' => $usuario,
+                ':fechaInicio' => $fechaInicio,
+                ':fechaFin' => $fechaFin
+            ];
+            $result = $this->query($sql, $params);
 
             return $result;
 
@@ -802,6 +1071,81 @@ class VerificacionMotosModel extends Model
             return [
                 'success' => false,
                 'message' => 'Error al obtener motos por recibir: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function Generar_Contrato_CompraVenta($Facturaid){
+        try {
+             $query = "SELECT 
+            D1.ID AS DeudaID_Venta,
+            D1.DocumentoID AS DocumentoID_Venta,
+            D2.DeudaID AS DeudaID_Referencia,
+            D2.DocumentoID AS DocumentoID_Referencia,
+            A.Valor,
+            A.Plazo,
+            A.Interes,
+            ADT.NroCuota,
+            ADT.Fecha,
+            ADT.Saldo,
+            ADT.Cuota,
+            ADT.Interes AS InteresCuota,
+            ADT.Capital
+            FROM COMPUTRONSA..CLI_CLIENTES_DEUDAS D1 WITH (NOLOCK)
+            INNER JOIN COMPUTRONSA..CLI_CLIENTES_DEUDAS D2 WITH (NOLOCK)
+            ON D1.ID = D2.DeudaID AND D2.Crédito = 1
+            INNER JOIN COMPUTRONSA..CLI_AMORTIZACIONES A WITH (NOLOCK)
+            ON A.ID = D2.DocumentoID AND D2.Tipo = A.Tipo
+            LEFT JOIN COMPUTRONSA..CLI_AMORTIZACIONES_DT ADT WITH (NOLOCK)
+            ON ADT.AmortizaciónID = A.ID
+            WHERE D1.DocumentoID = :DocumentoID AND D1.Tipo = 'VEN-FA' AND D1.Anulado = 0
+            AND D2.Anulado = 0";
+            $params = [
+                ':DocumentoID' => $Facturaid
+            ];
+            $stmt = $this->query($query, $params);
+            return $stmt;
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
+    }
+
+    function Datos_Moto($PRODUCTOID, $serie, $Facturaid)
+    {
+        try {
+
+            $query2 = "SELECT
+                * from COMPUTRONSA..FACTURASLISTAS
+                where Factura = :Facturaid";
+            $params2 = [
+                ':Facturaid' => $Facturaid
+            ];
+            $stmt2 = $this->query($query2, $params2);
+            $result2 = $stmt2['data'];
+
+            $query = "SELECT
+                * from CARTIMEX..INV_PRODUCTOS_SERIES_COMPRAS_MOTOS
+                where ProductoID = :ProductoID
+                and Serie = :serie
+                and Facturaid = :Facturaid";
+
+            $params = [
+                ':ProductoID' => $PRODUCTOID,
+                ':serie' => $serie,
+                ':Facturaid' => $Facturaid
+            ];
+            $stmt = $this->query($query, $params);
+            $result = $stmt['data'];
+
+            return [
+                'success' => true,
+                'data' => $result,
+                'data2' => $result2
+            ];
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al obtener datos de la moto: ' . $e->getMessage()
             ];
         }
     }
