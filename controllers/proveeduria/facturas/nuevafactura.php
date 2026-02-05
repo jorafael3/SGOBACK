@@ -9,8 +9,8 @@ class nuevafactura extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->folder = 'proveeduria'; // Especifica la carpeta donde está el modelo
-        $this->loadModel('opciones'); // Cargar el modelo correcto
+        $this->folder = 'proveeduria/facturas/'; // Especifica la carpeta donde está el modelo
+        $this->loadModel('nuevafactura'); // Cargar el modelo correcto
     }
 
     function GetProveedores()
@@ -253,15 +253,17 @@ class nuevafactura extends Controller
         }
 
         $result = $this->model->Cargar_FacturasSolicitadas();
+        $result["ruta_archivos"] = constant("DOWNLOAD_PATH") . "Cartimex/proveeduria/ingresos_facturas/facturas/";
         if ($result['success']) {
             $this->jsonResponse([
                 'success' => true,
                 'data' => $result["data"],
+                'ruta_archivos' => $result["ruta_archivos"],
             ], 200);
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'message' => $result["message"],
+                'message' => $result,
             ], 200);
         }
     }

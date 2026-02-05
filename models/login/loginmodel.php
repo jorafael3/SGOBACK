@@ -2,6 +2,7 @@
 // =====================================================
 // ARCHIVO: models/loginmodel.php
 // =====================================================
+
 /**
  * Modelo de Login
  */
@@ -57,7 +58,7 @@ class LoginModel extends Model
                     'message' => 'Credenciales inválidas 2'
                 ];
             }
-         
+
             // // Verificar si el usuario está activo
             if ($user['data'][0]["anulado"] == "1") {
                 return [
@@ -74,7 +75,7 @@ class LoginModel extends Model
             //         'message' => 'Credenciales inválidas'
             //     ];
             // }
-            if(!(strtolower(trim($password)) === strtolower(trim($user["data"][0]['clave'])))){
+            if (!(strtolower(trim($password)) === strtolower(trim($user["data"][0]['clave'])))) {
                 $this->recordFailedAttempt($username);
                 return [
                     'success' => false,
@@ -88,11 +89,11 @@ class LoginModel extends Model
             $empresaActual = $empresa_code ?? $this->empresaCode;
             $user["data"][0]["empresa"] = $empresaActual;
             $user["data"][0]["empresa_code"] = $empresaActual;
-            
+
             // Agregar el nombre de la empresa desde la configuración
             global $EMPRESAS;
             $user["data"][0]["empresa_name"] = $EMPRESAS[$empresaActual]['name'] ?? 'Empresa Desconocida';
-            
+
             // Remover campos sensibles
             unset($user['data'][0]['clave']);
 
@@ -190,6 +191,194 @@ class LoginModel extends Model
             ]);
         } catch (Exception $e) {
             $this->logError("Error actualizando último login: " . $e->getMessage());
+        }
+    }
+
+    //*** REGISTER */
+
+    function buscarCedulaDobra($cedula, $emprea)
+    {
+        try {
+            $sql = "SELECT email, email_personal, Nombre, ID from \"$emprea\"..EMP_EMPLEADOS WHERE Código = :cedula";
+            $stmt = $this->query($sql, [':cedula' => $cedula]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo tipos de gastos: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error obteniendo tipos de gastos: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function validarUsuarioExistente($empleado_id, $empresa)
+    {
+        try {
+            $this->setEmpresa("produccion_cartimex");
+            $sql = "SELECT COUNT(*) as count FROM " . $empresa . "..SERIESUSR WHERE EmpleadoID = :empleado_id";
+            $stmt = $this->query($sql, [':empleado_id' => $empleado_id]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error validando nombre de usuario: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error validando nombre de usuario: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function GenerarCodigo($empleado, $empresa, $generateCode)
+    {
+        try {
+            $this->setEmpresa("produccion_cartimex");
+            $updateSql = "UPDATE CARTIMEX..sgo_login_codigo_verificacion
+                set usado = 1
+                WHERE empleado = :empleado AND empresa = :empresa;";
+            $this->query($updateSql, [':empleado' => $empleado, ':empresa' => $empresa]);
+
+            $sql = "INSERT INTO CARTIMEX..sgo_login_codigo_verificacion
+                (
+                    empleado,
+                    empresa,
+                    codigo
+                )VALUES
+                (
+                    :empleado,
+                    :empresa,
+                    :codigo
+                );";
+            $stmt = $this->db->execute($sql, [':empleado' => $empleado, ':empresa' => $empresa, ':codigo' => $generateCode]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo tipos de gastos: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error obteniendo tipos de gastos: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function validate_codigo($codigo, $empresa, $empleadoId)
+    {
+        try {
+            $this->setEmpresa("produccion_cartimex");
+            $sql = "SELECT * from CARTIMEX..sgo_login_codigo_verificacion 
+                WHERE codigo = :codigo AND empresa = :empresa AND empleado = :empleadoId AND usado = 0
+                ORDER BY id DESC;";
+            $stmt = $this->query($sql, [
+                ':codigo' => $codigo,
+                ':empresa' => $empresa,
+                ':empleadoId' => $empleadoId
+            ]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error obteniendo tipos de gastos: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error obteniendo tipos de gastos: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function ValidarNombreUsuario($nombreUsuario, $empresa)
+    {
+        try {
+            $this->setEmpresa("produccion_cartimex");
+
+
+            $sql = "SELECT COUNT(*) as count FROM \"$empresa\"..SERIESUSR WHERE usuario = :nombreUsuario";
+            $stmt = $this->query($sql, [':nombreUsuario' => $nombreUsuario]);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error validando nombre de usuario: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error validando nombre de usuario: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function registrar_usuario($parametros)
+    {
+        try {
+            $this->setEmpresa("produccion_cartimex");
+
+            $usuario = $parametros["usuario"];
+            $clave = $parametros["password"];
+            $empleado_id = $parametros["empleado_id"];
+            $empresa = $parametros["empresa"];
+
+            $sql = "
+            SET NOCOUNT ON;
+                Declare 
+                @lastid varchar(20),
+                @sucursal varchar(10),
+                @nombre varchar(100),
+                @lugartrabajo varchar(10)
+
+                SELECT @lastid = RIGHT('0000000000' + CAST(ISNULL(MAX(usrid) + 1, 1) AS VARCHAR(10)), 10) FROM " . $empresa . "..SERIESUSR
+                SELECT @sucursal = SucursalID, @nombre = Nombre FROM " . $empresa . "..EMP_EMPLEADOS WHERE ID = '$empleado_id'
+                SELECT @lugartrabajo = ID FROM SIS_SUCURSALES WHERE Código = @sucursal
+            
+                INSERT INTO " . $empresa . "..SERIESUSR 
+                (
+                   usrid,
+                   usuario,
+                   nombre,
+                   clave,
+                   lugartrabajo,
+                   EmpleadoId,
+                   empleado_empresa
+                ) 
+                VALUES 
+                (
+                   @lastid,
+                   :usuario,
+                   @nombre,
+                   :clave,
+                   @lugartrabajo,
+                   :EmpleadoId,
+                   :empleado_empresa
+                );
+                
+                    SELECT @lastid as usrid
+                ";
+
+            $p = [
+                ':usuario' => $usuario,
+                ':clave' => $clave,
+                ':EmpleadoId' => $empleado_id,
+                ':empleado_empresa' => $empresa
+            ];
+            $stmt = $this->db->query($sql, $p);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error registrando usuario: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error registrando usuario: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    function Registrar_Menus($usrid, $empresa)
+    {
+        try {
+            
+            $this->setEmpresa("produccion_cartimex");
+            $sql = "INSERT INTO CARTIMEX..SGO_MENU_USUARIOS (UsuarioID, MenuID, usuario_empresa) 
+                VALUES
+                (" . $usrid . ", '26', '" . $empresa . "'),
+                (" . $usrid . ", '42', '" . $empresa . "')
+                ";
+            $stmt = $this->db->execute($sql);
+            return $stmt;
+        } catch (Exception $e) {
+            $this->logError("Error registrando menús: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error registrando menús: ' . $e->getMessage()
+            ];
         }
     }
 }
