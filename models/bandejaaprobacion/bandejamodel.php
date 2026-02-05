@@ -314,7 +314,7 @@ class BandejaModel extends Model
 	}
 
 	//********************************** */
-
+	//* VACACIONES APROBACION
 
 	function GetVacacionesAprobacion($data = [])
 	{
@@ -834,6 +834,117 @@ class BandejaModel extends Model
 			return [
 				'success' => false,
 				'error' => $e->getMessage()
+			];
+		}
+	}
+
+	//***  ORDENES DE COMPRA 	*/
+
+	function GetOrdenesDeCompraAprobacion($data)
+	{
+		try {
+			$tipo = "0000618642";
+			$sql = "SELECT 
+				TipoOrden, * 
+				FROM CARTIMEX..COM_ORDENES
+				WHERE 
+				(Fecha) >= '20230101' 
+				AND Aprobado = :aprobado
+				and anulado = 0
+				AND ESTADO in('','RECIBIDA')
+				and TipoOrden = :tipoOrden 
+				order by ID desc
+			";
+
+
+			$params = [
+				":tipoOrden" => $data["userdata"]["ordenes_compra_envio"],
+				":aprobado" => $data["estado"],
+
+			];
+
+			if ($data["estado"] == 1) {
+				$sql = "SELECT 
+				TipoOrden, * 
+				FROM CARTIMEX..COM_ORDENES
+				WHERE 
+				(Fecha) >= '20230101' 
+				AND Aprobado = :aprobado
+				and anulado = 0
+				AND ESTADO in('','RECIBIDA')
+				and TipoOrden = :tipoOrden 
+				and (aprobado_por = :usrid or aprobado_por = :usuario)
+				order by ID desc
+			";
+				$params[":usrid"] = $data["userdata"]["usrid"];
+				$params[":usuario"] = $data["userdata"]["usuario"];
+				unset($params[":aprobado"]); // El estado de aprobación ya no es necesario en esta consulta
+				$params[":aprobado"] = 1; // Solo queremos órdenes aprobadas
+			}
+
+			$stmt = $this->query($sql, $params);
+			return $stmt;
+		} catch (Exception $e) {
+			$this->logError("Error en GetOrdenesDeCompraAprobacion: " . $e->getMessage());
+			error_log("Exception in GetOrdenesDeCompraAprobacion: " . $e->getMessage());
+			return [
+				'success' => false,
+				'error' => $e->getMessage()
+			];
+		}
+	}
+
+	function GetOrdenesDeCompraAprobacionDetalle($data)
+	{
+		try {
+			$sql = "SELECT 
+            com.Fecha, 
+            com.Detalle, com.CreadoPor, dt.ProductoID, pro.Código, dt.OrdenID, com.Tipo, dt.Cantidad, com.ID 
+            ,pro.Código AS producto , CAST(dt.Precio AS DECIMAL(10, 2)) AS Precio , pro.Nombre , par.Nombre as Termino 
+             FROM COM_ORDENES com
+             INNER JOIN COM_ORDENES_DT dt WITH (NOLOCK) ON com.ID = dt.OrdenID
+             INNER JOIN INV_PRODUCTOS pro WITH (NOLOCK) ON dt.ProductoID = pro.ID 
+            INNER JOIN SIS_PARAMETROS par WITH (NOLOCK) ON com.TérminoID = par.ID
+            WHERE  YEAR(com.Fecha) >= 2023 AND com.ID = :ID
+			";
+			$params = [
+				":ID" => $data['id'] ?? null
+			];
+			$stmt = $this->query($sql, $params);
+			return $stmt;
+		} catch (Exception $e) {
+			$this->logError("Error en GetOrdenesDeCompraAprobacionDetalle: " . $e->getMessage());
+			error_log("Exception in GetOrdenesDeCompraAprobacionDetalle: " . $e->getMessage());
+			return [
+				'success' => false,
+				'error' => $e->getMessage()
+			];
+		}
+	}
+
+	function AprobarOrdenDeCompra($data)
+	{
+		$hoy = date('Y-m-d H:i:s');
+		try {
+			$sql = "UPDATE COM_ORDENES
+				SET Aprobado = '1', 
+				aprobado_comentario = :Comentario,
+				Aprobado_por = :usuario,
+				aprobado_fecha = :fecha
+				WHERE ID = :OrdenID
+			";
+			$params = [
+				":OrdenID" => $data['id'] ?? null,
+				":Comentario" => $data['comentario'] ?? '',
+				":usuario" => $data['userdata']['usrid'] ?? null,
+				":fecha" => $hoy
+			];
+			$result = $this->db->execute($sql, $params);
+			return $result;
+		} catch (Exception $e) {
+			return [
+				'success' => false,
+				'error' => 'Error en la consulta: ' . $e->getMessage()
 			];
 		}
 	}

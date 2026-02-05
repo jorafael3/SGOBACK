@@ -58,7 +58,7 @@ class MenusModel extends Model
             ];
 
             if ($data['PadreId'] != null || $data['PadreId'] != "") {
-                $sql .= "DECLARE @Padre INT;
+                $sql = "DECLARE @Padre INT;
                     EXEC CARTIMEX..SGO_MENU_INSERTAR_NUEVO
                         @Empresa = :empresa,
                         @Titulo = :titulo,

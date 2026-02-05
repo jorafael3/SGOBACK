@@ -160,7 +160,7 @@ class InformePagosModel extends Model
 				where 
 				acr.Débito = 0 
 				and acr.Anulado = 0 
-				--and acr.Saldo > 0
+				and acr.Saldo > 0
 				and acr.SGO_CONFIRMAR = 1
 				and acr.DESCARTAR = '" . ($estado == 2 ? '1' : '0') . "'
 				and acr.AcreedorID NOT IN ( '0000002922', '1000000618')
