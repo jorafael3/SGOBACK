@@ -60,7 +60,7 @@ class crearactModel extends Model
                 if (!empty($tipo_marca_filtrado) && isset(array_values($tipo_marca_filtrado)[0]["consolidado"]) && array_values($tipo_marca_filtrado)[0]["consolidado"] == 1) {
                     $param["ACTIVIDAD_ID"] = $lastId;
                     #TODO: Revisar error en el model listact
-                    // $queryListAct = $this->listactModel->Consolidar_Actividades($param);
+                    $queryListAct = $this->listactModel->Consolidar_Actividades($param);
                 }
                 // return $param;
                 return $query;
@@ -72,6 +72,22 @@ class crearactModel extends Model
         }
     }
 
+// INSERT INTO SGO_ACTIVIDADES_MARCAS_TIPOS (nombre, tipo, consolidado)
+// VALUES
+// ('CAMPAÑAS PUBLICITARIAS COMPUTRON', 2, 0),
+// ('CAMPAÑAS PUBLICITARIAS CARTIMEX', 2, 0),
+// ('CARTIMEX FONDO DE MERCADEO', 2, 0),
+// ('PROMOTOR', 2, 0),
+// ('INCENTIVOS-GIFT', 2, 0),
+// ('DEMOS DIRECTOS MARCA', 2, 0),
+// ('PROMO DIRECTA MARCA', 2, 0),
+// ('MARCAS REBATE DIRECTO CANAL', 2, 0),
+// ('REBATE COMPUTRON', 2, 0);
+// --REBATE CARTIMEX id 11, PROMOCIONES BUNDLE id 10, PROTECCION PRECIO /AJUSTE id 4
+// UPDATE SGO_ACTIVIDADES_MARCAS_TIPOS
+// SET
+//     nombre = 'REBATE CARTIMEX'
+// WHERE id = 11;
     function Cargar_Tipos_Marcas()
     {
         try {
