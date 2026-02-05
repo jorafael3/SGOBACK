@@ -61,7 +61,8 @@ class Menus extends Controller
                 'success' => false,
                 'error' => 'Error al crear el menú',
                 'empresa_actual' => $jwtData['empresa'] ?? 'N/A',
-                "respuesta" => $result
+                "respuesta" => $result,
+                "param" => $data
             ], 200);
         }
     }

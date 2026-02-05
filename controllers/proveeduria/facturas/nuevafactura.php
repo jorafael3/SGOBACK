@@ -1,16 +1,18 @@
 <?php
 require_once __DIR__ . '../../../../libs/JwtHelper.php';
 require_once __DIR__ . '../../../../libs/EmailService.php';
+require_once __DIR__ . '/../../notificaciones/notificaciones.php';
 // require_once __DIR__ . '/../models/empresamodel.php';
 
 class nuevafactura extends Controller
 {
-
+    private $notificaciones;
     public function __construct()
     {
         parent::__construct();
         $this->folder = 'proveeduria/facturas/'; // Especifica la carpeta donde está el modelo
         $this->loadModel('nuevafactura'); // Cargar el modelo correcto
+        $this->notificaciones = new Notificaciones(); // Instanciar el controlador de notificaciones
     }
 
     function GetProveedores()
@@ -46,7 +48,7 @@ class nuevafactura extends Controller
         $result = $this->model->Cargar_TipoGastos($data);
         $monto = $this->model->GetMontoAprobacion();
         $iva = $this->model->GetImpuestoIva();
-        
+
         if ($result['success']) {
             $this->jsonResponse([
                 'success' => true,
@@ -226,13 +228,31 @@ class nuevafactura extends Controller
                 error_log("Error enviando email: " . $e->getMessage());
             }
 
+            // Insertar notificación
+            $noti = null;   
+            try {
+                $notificacion = new Notificaciones();
+                $noti = $notificacion->InsertarNotificacion(array(
+                    'usuario_id' => $data["responsable"]['usuario_id'],
+                    'empresa' => "CARTIMEX",
+                    'tipo' => 'success',
+                    'titulo' => 'Nueva factura por Aprobar',
+                    'mensaje' => 'Factura con secuencia ' . $secuencia_formateada,
+                    'url' => ""
+                ));
+            } catch (Exception $e) {
+                error_log("Error insertando notificación: " . $e->getMessage());
+            }
+
+
             $this->jsonResponse([
                 'success' => true,
                 "message" => "Factura guardada exitosamente.",
                 "solicitud" => str_pad($result['last_insert_id'], 10, "0", STR_PAD_LEFT),
                 "secuencia_formateada" => $secuencia_formateada,
                 'data' => $result,
-                "email" => $mail
+                "email" => $mail,
+                "notificacion" => $noti,
             ], 200);
         } else {
             $this->jsonResponse([
@@ -251,14 +271,16 @@ class nuevafactura extends Controller
         if (!$jwtData) {
             return; // La respuesta de error ya fue enviada automáticamente
         }
+        $data = $this->getJsonInput();
 
-        $result = $this->model->Cargar_FacturasSolicitadas();
+        $result = $this->model->Cargar_FacturasSolicitadas($data);
         $result["ruta_archivos"] = constant("DOWNLOAD_PATH") . "Cartimex/proveeduria/ingresos_facturas/facturas/";
         if ($result['success']) {
             $this->jsonResponse([
                 'success' => true,
                 'data' => $result["data"],
                 'ruta_archivos' => $result["ruta_archivos"],
+                "parametros" => $data,
             ], 200);
         } else {
             $this->jsonResponse([

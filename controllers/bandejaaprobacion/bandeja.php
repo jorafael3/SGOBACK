@@ -386,5 +386,95 @@ class Bandeja extends Controller
     }
 
     //********************************************/
+    ///** ORDENES DE COMPRA */
 
+    function GetOrdenesDeCompraAprobacion()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+        $aprobador = $data["userdata"]["aprobador"] ?? 0;
+        $modulos_aprobacion = $data["userdata"]["modulos_aprobados"] ?? [];
+        $modulos_aprobacion = explode(",", $modulos_aprobacion);
+
+        if ($aprobador == 1 && in_array("ordenes_compra", $modulos_aprobacion)) {
+            $result = $this->model->GetOrdenesDeCompraAprobacion($data);
+
+            if ($result && $result['success']) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'data' => $result['data'],
+                    "params" => $data,
+                    "aprobador" => $aprobador,
+                    "modulos_aprobacion" => $modulos_aprobacion
+                ]);
+            } else {
+                $this->jsonResponse([
+                    'success' => false,
+                    'mensaje' => 'Error al obtener datos',
+                    'details' => $result,
+                    "params" => $data
+                ], 200);
+            }
+        }else{
+            $this->jsonResponse([
+                'success' => false,
+                'mensaje' => 'No tiene permisos para aprobar órdenes de compra',
+            ], 200);
+        }
+    }
+
+    function GetOrdenesDeCompraAprobacionDetalles()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+        $result = $this->model->GetOrdenesDeCompraAprobacionDetalle($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse([
+                'success' => true,
+                'data' => $result['data'],
+                "params" => $data
+            ]);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos personales',
+                'details' => $result
+            ], 200);
+        }
+    }
+    function AprobarOrdenDeCompra()
+    {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData) {
+            return;
+        }
+        $data = $this->getJsonInput();
+
+
+
+        $result = $this->model->AprobarOrdenDeCompra($data);
+
+        if ($result && $result['success']) {
+            $this->jsonResponse([
+                'success' => true,
+                'data' => $result,
+                "params" => $data,
+
+            ]);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'Error al obtener datos personales',
+                'details' => $result
+            ], 200);
+        }
+    }
 }

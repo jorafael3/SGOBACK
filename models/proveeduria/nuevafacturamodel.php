@@ -302,8 +302,9 @@ class NuevaFacturaModel extends Model
 
     //*** SOLICITADAS */
 
-    function Cargar_FacturasSolicitadas()
+    function Cargar_FacturasSolicitadas($data)
     {
+        $filtro = $data['estado'] == "" ? '' : ($data["estado"] == 0 ? " AND f.Estado = 0 " : ($data["estado"] == 1 ? " AND f.Estado = 1 " : ($data["estado"] == 2 ? " AND f.Estado = 2 " : '')));
         try {
             $sql = "
                     DECLARE @monto_aprobacion DECIMAL(18,2);
@@ -459,8 +460,12 @@ class NuevaFacturaModel extends Model
                         AND u2.usuario = f.buzon)
                     )
                 where 
-                    f.Creado_por = 'JRALVARADO'
-                    or f.Creado_por = '0000000386'
+                    1=1
+                    " . $filtro . "
+                    and (
+                    f.Creado_por = '" . $data['userdata']['usuario'] . "'
+                    or f.Creado_por = '" . $data['userdata']['usrid'] . "')
+
                 ORDER by f.Fecha_creado desc    
                 ";
             $stmt = $this->db->query($sql);
