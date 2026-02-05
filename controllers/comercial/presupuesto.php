@@ -13,6 +13,9 @@ class presupuesto extends Controller
 
     function Cargar_Presupuestos_creados()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $result = $this->model->Cargar_Presupuestos_creados();
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -26,6 +29,9 @@ class presupuesto extends Controller
 
     function Nuevo_Presupuesto()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $params['usrid'] = $params['userdata']['usuario'] ?? null;
         $result = $this->model->Nuevo_Presupuesto($params);
@@ -45,6 +51,9 @@ class presupuesto extends Controller
 
     function BuscarVendedor()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $result = $this->model->BuscarVendedor();
         if ($result && $result['success']) {
             $this->jsonResponse($result, 200);
@@ -57,6 +66,9 @@ class presupuesto extends Controller
     }
     function AgregarVendedor()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->AgregarVendedor($params);
         if ($result && $result['success']) {
@@ -70,6 +82,9 @@ class presupuesto extends Controller
     }
     function Cargar_Vendedores()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $params['usrid'] = $params['userdata']['usuario'] ?? null;
         $result = $this->model->Cargar_Vendedores($params);
@@ -85,6 +100,9 @@ class presupuesto extends Controller
 
     function Actualizar_Presupuesto_Vendedor()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->Actualizar_Presupuesto_Vendedor($params);
         if ($result && $result['success']) {
@@ -100,6 +118,9 @@ class presupuesto extends Controller
     // Categorias
     function Subir_Presupuesto_Categorias()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->Subir_Presupuesto_Categorias($params);
         if ($result && $result['success']) {
@@ -113,9 +134,12 @@ class presupuesto extends Controller
             ], 200);
         }
     }
-    
+
     function Cargar_Presupuesto_Categorias()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->Cargar_Presupuesto_Categorias($params);
         if ($result && $result['success']) {
@@ -131,6 +155,9 @@ class presupuesto extends Controller
     }
     function Actualizar_Presupuesto_Categorias()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->Actualizar_Presupuesto_Categorias($params);
         if ($result && $result['success']) {
@@ -147,6 +174,9 @@ class presupuesto extends Controller
     // Meses
     function Cargar_Presupuesto_Meses()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->Cargar_Presupuesto_Meses($params);
         if ($result && $result['success']) {
@@ -160,6 +190,9 @@ class presupuesto extends Controller
     }
     function Actualizar_Presupuesto_Mes()
     {
+        $jwtData = $this->authenticateAndConfigureModel(2);
+        if (!$jwtData)
+            return;
         $params = $this->getJsonInput();
         $result = $this->model->Actualizar_Presupuesto_Mes($params);
         if ($result && $result['success']) {

@@ -1075,9 +1075,10 @@ class VerificacionMotosModel extends Model
         }
     }
 
-    function Generar_Contrato_CompraVenta($Facturaid){
+    function Generar_Contrato_CompraVenta($Facturaid)
+    {
         try {
-             $query = "SELECT 
+            $query = "SELECT 
             D1.ID AS DeudaID_Venta,
             D1.DocumentoID AS DocumentoID_Venta,
             D2.DeudaID AS DeudaID_Referencia,
@@ -1146,6 +1147,64 @@ class VerificacionMotosModel extends Model
             return [
                 'success' => false,
                 'message' => 'Error al obtener datos de la moto: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function Regresar_Serie_Moto($param)
+    {
+        try {
+            $facturaId = $param['FacturaID'] ?? null;
+            $productoId = $param['ProductoID'] ?? null;
+            $serie = $param['Serie'] ?? null;
+            $usuario = $param['usuario'] ?? '';
+
+            if (!$productoId || !$serie) {
+                return [
+                    'success' => false,
+                    'message' => 'ProductoID y Serie son requeridos'
+                ];
+            }
+
+            $sql = "UPDATE CARTIMEX..INV_PRODUCTOS_SERIES_COMPRAS_MOTOS
+                    SET Estado_Serie = 'INVENTARIO',
+                        Facturaid = NULL,
+                        RmaDtId = NULL,
+                        Estado_serie_fecha = GETDATE(),
+                        Estado_serie_por = :usuario
+                    WHERE ProductoID = :productoid
+                      AND Serie = :serie
+                      AND Estado_Serie = 'VENDIDO'";
+
+            $params = [
+                ':usuario' => $usuario,
+                ':productoid' => $productoId,
+                ':serie' => $serie
+            ];
+
+            if ($facturaId !== null && $facturaId !== '') {
+                $sql .= " AND Facturaid = :facturaid";
+                $params[':facturaid'] = $facturaId;
+            }
+
+            $result = $this->db->execute($sql, $params);
+
+            if ($result && $result['success'] && isset($result['affected_rows']) && $result['affected_rows'] > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Serie regresada a inventario correctamente'
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $result['message'] ?? 'Error al regresar la serie'
+            ];
+        } catch (Exception $e) {
+            $this->logError("Error regresando serie moto: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al regresar serie: ' . $e->getMessage()
             ];
         }
     }
