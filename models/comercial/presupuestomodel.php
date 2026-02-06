@@ -46,7 +46,7 @@ class PresupuestoModel extends Model
                 ':creado_por' => $creado_por
             ];
             $sql = "INSERT INTO PBI_PRESUPUESTO_CARTIMEX_CREADOS_SGO
-            (year, presupuestoEstimado, creado_por) VALUES (:year, :presupuesto, :creado_por)";
+            (year, presupuesto_Estimado, creado_por) VALUES (:year, :presupuesto, :creado_por)";
             $ok = $this->db->execute($sql, $params);
             if (!$ok) {
                 return false;
@@ -245,10 +245,6 @@ INNER JOIN PBI_PRESUPUESTO_CARTIMEX_CATEGORIAS c
    AND c.Year = ".$year."
 WHERE (LEN(i.Código) - LEN(REPLACE(i.Código, '.', ''))) = 1
 ORDER BY i.Código";
-            $params = [
-                ":CatYear" => $year
-            ];
-            // $stmt = $this->db->query($sql, $params);
             $stmt = $this->db->query($sql);
             return $stmt;
         } catch (Exception $e) {
